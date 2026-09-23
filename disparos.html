@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disparos em Lote - WhatsApp</title>
+<link rel="icon" type="image/png" href="https://img.icons8.com/color/48/whatsapp--v1.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0b0d14; color: #f1f5f9; padding: 12px; background-image: radial-gradient(circle at 50% 0%, #166534 0%, #0b0d14 60%); background-attachment: fixed; }
+  .app { width: 100%; max-width: 800px; margin: 0 auto; padding-bottom: 40px; }
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 20px; }
+  .title { font-size: 20px; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 10px; }
+  .btn-voltar { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #cbd5e1; padding: 8px 14px; text-decoration: none; font-size: 14px; font-weight: 600; }
+  .card { background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(16px); border-radius: 20px; padding: 20px; margin-bottom: 16px; border: 1px solid rgba(255, 255, 255, 0.08); }
+  .card-title { font-size: 12px; font-weight: 800; color: #22c55e; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  .input { width: 100%; padding: 14px; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; font-size: 14px; background: rgba(0,0,0,0.3); color: #fff; margin-bottom: 12px; font-family: inherit; }
+  .input:focus { outline: none; border-color: #22c55e; }
+  textarea.input { resize: vertical; min-height: 100px; }
+  .btn-save { width: 100%; padding: 16px; border: none; border-radius: 14px; background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; font-size: 15px; font-weight: 800; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
+  .btn-save:hover { filter: brightness(1.1); transform: translateY(-2px); }
+  .btn-save:disabled { background: #333; color: #888; cursor: not-allowed; transform: none; }
+  .client-list { max-height: 250px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 8px; background: rgba(0,0,0,0.2); }
+  .client-item { display: flex; align-items: center; gap: 10px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .client-item:last-child { border: none; }
+  .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); padding: 14px 24px; border-radius: 14px; font-size: 14px; font-weight: 700; color: #fff; z-index: 1000; display: none; background: #10b981; }
+  .lote-card { border-left: 4px solid #3b82f6; padding-left: 14px; margin-bottom: 20px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 200px; }
+  .wpp-btn { padding: 8px 12px; border-radius: 8px; background: #25D366; color: #000; text-decoration: none; font-weight: 800; font-size: 12px; display: inline-block; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">Ação concluída!</div>
+
+<div class="app">
+  <div class="header">
+    <div class="title">💬 Disparos em Lote</div>
+    <a href="index.html" class="btn-voltar">Voltar</a>
+  </div>
+
+  <!-- CRIAR NOVO LOTE -->
+  <div class="card">
+    <div class="card-title">CRIAR NOVA FILA DE DISPARO</div>
+    <div class="row">
+      <div class="col">
+        <label style="font-size:11px;color:#94a3b8;font-weight:700">NOME DO LOTE (Ex: Faturamento 20/09)</label>
+        <input type="text" class="input" id="lote-nome" placeholder="Digite o nome do Lote">
+      </div>
+      <div class="col">
+        <label style="font-size:11px;color:#94a3b8;font-weight:700">DATA PROGRAMADA</label>
+        <input type="date" class="input" id="lote-data">
+      </div>
+    </div>
+    
+    <label style="font-size:11px;color:#94a3b8;font-weight:700;margin-top:10px;display:block;">MENSAGEM PADRÃO</label>
+    <textarea class="input" id="lote-msg" placeholder="Ex: Olá {nome}, você já recebeu o seu boleto?"></textarea>
+    <div style="font-size:11px; color:#cbd5e1; margin-bottom:12px;">Dica: Use <strong>{nome}</strong> para o sistema trocar automaticamente pelo nome do cliente.</div>
+
+    <div class="card-title" style="margin-top:20px;">SELECIONE OS CLIENTES (MAX 25 POR LOTE)</div>
+    <input type="text" class="input" id="search-cli" placeholder="Buscar cliente..." oninput="filtrarClientes()">
+    <div class="client-list" id="lista-clientes">
+      <div style="padding:10px; color:#94a3b8; text-align:center;">Buscando clientes da base...</div>
+    </div>
+    <div style="font-size:12px; text-align:right; margin-top:8px; font-weight:700;" id="contador">0 selecionados</div>
+
+    <button class="btn-save" id="btn-salvar" onclick="salvarLote()">💾 Gravar Lote no Sistema</button>
+  </div>
+
+  <!-- LOTES AGENDADOS -->
+  <div class="card">
+    <div class="card-title" style="color:#3b82f6;">FILAS DE DISPARO PENDENTES</div>
+    <div id="lotes-pendentes">
+      <div style="color:#94a3b8; text-align:center; padding:20px;">Carregando lotes...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let clientesBase = [];
+  
+  // AQUI ESTÁ A SUA URL CORRETA E ATUALIZADA
+  const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxurVVSboEKdrVrSG8rFzLpJT5Ms5a8jIr3USSEfMaguBrr0K1j3UAW0xuVOOWHCOvM/exec";
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
+
+  // Busca os clientes na aba Analítica
+  fetch(GOOGLE_WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'getClientesParaDisparo', args: [] })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Erro de conexão com o Google (" + res.status + ")");
+    return res.json();
+  })
+  .then(res => {
+    if (res.sucesso) {
+      clientesBase = res.dados || [];
+      renderizarClientes();
+    } else {
+      document.getElementById('lista-clientes').innerHTML = `<div style="color:#ef4444; padding:10px; text-align:center; font-weight:bold;">Erro na Planilha: ${res.mensagem}<br><span style="font-size:11px;">(Você adicionou 'getClientesParaDisparo: true' na Whitelist e fez Nova Implantação?)</span></div>`;
+    }
+    carregarLotesSalvos();
+  })
+  .catch(err => {
+    document.getElementById('lista-clientes').innerHTML = `<div style="color:#ef4444; padding:10px; text-align:center; font-weight:bold;">Falha de Comunicação!<br><span style="font-size:12px; color:#cbd5e1;">${err.message}</span></div>`;
+    carregarLotesSalvos();
+  });
+
+  function renderizarClientes() {
+    const container = document.getElementById('lista-clientes');
+    if(clientesBase.length === 0) {
+      container.innerHTML = '<div style="padding:10px; color:#94a3b8; text-align:center;">Nenhum cliente encontrado no Analítico.</div>';
+      return;
+    }
+    
+    let html = '';
+    clientesBase.forEach((cli, idx) => {
+      let badgeTel = cli.telefone ? `<span style="font-size:10px; color:#22c55e;">📱 ${cli.telefone}</span>` : `<span style="font-size:10px; color:#ef4444;">❌ Sem número</span>`;
+      html += `<label class="client-item" id="item-${idx}">
+                 <input type="checkbox" value="${cli.nome}|${cli.telefone}" onchange="atualizarContador()">
+                 <div style="display:flex; flex-direction:column; gap:2px;">
+                   <span style="font-weight:600; font-size:13px;">${cli.nome}</span>
+                   ${badgeTel}
+                 </div>
+               </label>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function filtrarClientes() {
+    const termo = document.getElementById('search-cli').value.toLowerCase();
+    const items = document.querySelectorAll('.client-item');
+    items.forEach(item => {
+      const texto = item.textContent.toLowerCase();
+      item.style.display = texto.includes(termo) ? 'flex' : 'none';
+    });
+  }
+
+  function atualizarContador() {
+    const checkboxes = document.querySelectorAll('.client-item input[type="checkbox"]:checked');
+    document.getElementById('contador').textContent = `${checkboxes.length} selecionados`;
+  }
+
+  function salvarLote() {
+    const nomeLote = document.getElementById('lote-nome').value.trim();
+    const dataLote = document.getElementById('lote-data').value;
+    const msgLote = document.getElementById('lote-msg').value.trim();
+    const selecionados = Array.from(document.querySelectorAll('.client-item input[type="checkbox"]:checked')).map(cb => cb.value);
+
+    if(!nomeLote || !dataLote || !msgLote) { showToast('Preencha nome, data e mensagem!'); return; }
+    if(selecionados.length === 0) { showToast('Selecione ao menos um cliente!'); return; }
+    if(selecionados.length > 25) { showToast('Máximo de 25 clientes por lote!'); return; }
+
+    const btn = document.getElementById('btn-salvar');
+    btn.disabled = true; btn.textContent = 'Gravando...';
+
+    const payload = { lote: nomeLote, data: dataLote, mensagem: msgLote, clientes: selecionados };
+
+    fetch(GOOGLE_WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'salvarLoteDisparo', args: [payload] })
+    })
+    .then(res => res.json())
+    .then(res => {
+      btn.disabled = false; btn.textContent = '💾 Gravar Lote no Sistema';
+      showToast('Lote Salvo!');
+      carregarLotesSalvos();
+    })
+    .catch(err => {
+      btn.disabled = false; btn.textContent = '💾 Gravar Lote no Sistema';
+      showToast('Erro ao salvar. Verifique conexão.');
+    });
+  }
+
+  function carregarLotesSalvos() {
+    fetch(GOOGLE_WEB_APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'getLotesDisparo', args: [] })
+    })
+    .then(res => res.json())
+    .then(res => {
+      const container = document.getElementById('lotes-pendentes');
+      if (!res.sucesso || res.dados.length === 0) {
+        container.innerHTML = '<div style="color:#94a3b8; text-align:center;">Nenhum lote pendente.</div>';
+        return;
+      }
+      
+      let html = '';
+      res.dados.forEach(lote => {
+        let txtCodificado = encodeURIComponent(lote.mensagem);
+        html += `<div class="card lote-card" style="padding:16px;">
+                   <div style="font-size:16px; font-weight:800; color:#fff;">📁 ${lote.loteNome}</div>
+                   <div style="font-size:12px; color:#cbd5e1; margin-bottom:10px;">Programado para: <strong>${lote.data}</strong> | Status: ${lote.status}</div>
+                   <div style="font-size:12px; background:rgba(0,0,0,0.3); padding:10px; border-radius:8px; color:#94a3b8;">${lote.mensagem}</div>
+                   <div style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
+                     <div style="font-size:11px; font-weight:800; color:#cbd5e1; margin-bottom:6px;">FILA DE ENVIO:</div>`;
+        
+        let arrayClientes = String(lote.clientes).split(',');
+        arrayClientes.forEach(cliDados => {
+           let partes = cliDados.split('|');
+           let nomeCli = partes[0] ? partes[0].trim() : '';
+           let numZap = partes[1] ? partes[1].trim() : '';
+           
+           let msgFinal = txtCodificado.replace('%7Bnome%7D', encodeURIComponent(nomeCli));
+           let linkWa = numZap ? `https://wa.me/55${numZap}?text=${msgFinal}` : `https://wa.me/?text=${msgFinal}`;
+           let btnCor = numZap ? '#25D366' : '#94a3b8';
+
+           html += `<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 12px; border-radius:8px; margin-bottom:6px;">
+                      <span style="font-size:13px; font-weight:700;">${nomeCli}</span>
+                      <a href="${linkWa}" target="_blank" class="wpp-btn" style="background:${btnCor};" onclick="this.style.background='#475569'; this.textContent='Enviado ✔️'">▶ Disparar</a>
+                    </div>`;
+        });
+        html += `</div></div>`;
+      });
+      container.innerHTML = html;
+    })
+    .catch(err => {
+      document.getElementById('lotes-pendentes').innerHTML = '<div style="color:#ef4444; text-align:center;">Erro ao carregar lotes.</div>';
+    });
+  }
+</script>
+</body>
+</html>

@@ -15,10 +15,15 @@
 <!-- Bibliotecas do Sistema -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ============================================
 // PONTE DE COMUNICAÇÃO GITHUB -> GOOGLE SHEETS
 // ============================================
+// CONEXÃO SUPABASE
+const SUPABASE_URL = 'https://kfacrxovtiiqifpunqxc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_sMCWfr1XkJ8M73cZJYxi2A_kX4SK5Wg';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxurVVSboEKdrVrSG8rFzLpJT5Ms5a8jIr3USSEfMaguBrr0K1j3UAW0xuVOOWHCOvM/exec";
 if (typeof google === 'undefined' || !google.script || !google.script.run) {
   window.google = window.google || {};

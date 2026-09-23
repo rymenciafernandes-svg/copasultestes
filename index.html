@@ -1,0 +1,2865 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Controle de Estoque - Posto</title>
+<!-- Favicon do Sistema -->
+<link rel="icon" type="image/png" href="https://img.icons8.com/color/48/gas-station.png">
+<!-- Bibliotecas do Sistema -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+// ============================================
+// PONTE DE COMUNICAÇÃO GITHUB -> GOOGLE SHEETS
+// ============================================
+const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxurVVSboEKdrVrSG8rFzLpJT5Ms5a8jIr3USSEfMaguBrr0K1j3UAW0xuVOOWHCOvM/exec";
+if (typeof google === 'undefined' || !google.script || !google.script.run) {
+  window.google = window.google || {};
+  window.google.script = window.google.script || {};
+  
+  function criarRunner() {
+    return {
+      _success: null,
+      _failure: null,
+      withSuccessHandler: function(fn) { this._success = fn; return this; },
+      withFailureHandler: function(fn) { this._failure = fn; return this; },
+      _executar: function(action, args) {
+        var self = this;
+        fetch(GOOGLE_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: action, args: args })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) { if (self._success) self._success(data); })
+        .catch(function(err) {
+          console.error("Erro na requisição (" + action + "):", err);
+          if (self._failure) self._failure(err);
+        });
+      }
+    };
+  }
+  Object.defineProperty(window.google.script, 'run', {
+    get: function() {
+      return new Proxy(criarRunner(), {
+        get: function(target, prop) {
+          if (prop === 'withSuccessHandler' || prop === 'withFailureHandler' || prop === '_executar') {
+            return target[prop];
+          }
+          return function() {
+            var args = Array.prototype.slice.call(arguments);
+            target._executar(String(prop), args);
+          };
+        }
+      });
+    }
+  });
+}
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Oswald:wght@700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  background: #0b0d14;
+  background-image: radial-gradient(circle at 50% 0%, #1a1738 0%, #0b0d14 75%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  color: #f1f5f9;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0 12px;
+}
+img { -webkit-user-drag: none; user-select: none; pointer-events: none; }
+.app {
+  width: 100%; max-width: 520px; margin: 0 auto; min-height: 100vh; padding-bottom: 40px; position: relative;
+}
+@media (min-width: 900px) {
+  .app { max-width: 1180px; padding: 0 24px; }
+  .menu { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .bi-container { display: grid; grid-template-columns: 260px 1fr; gap: 24px; align-items: start; }
+  .bi-kpi-grid { grid-template-columns: repeat(4, 1fr); }
+  .bi-charts-row1 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+}
+.page { display: none; animation: fadeIn .25s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
+.page.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.top-left-bar { position: fixed; top: 20px; left: 20px; z-index: 100; }
+.btn-hamburger {
+  width: 46px; height: 46px; border-radius: 50%; background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.15); color: #fff;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5); transition: all 0.2s ease;
+}
+.btn-hamburger:hover { background: rgba(255,255,255,0.2); transform: scale(1.05); }
+.drawer-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px); z-index: 99999; justify-content: flex-start;
+}
+.drawer-content {
+  width: 340px; max-width: 85%; height: 100%; background: #111422;
+  border-right: 1px solid rgba(255,255,255,0.12); padding: 24px 20px;
+  display: flex; flex-direction: column; gap: 12px; overflow-y: auto; animation: slideRight .25s ease;
+}
+@keyframes slideRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px; margin-bottom: 4px;
+}
+.drawer-title { display: flex; align-items: center; gap: 10px; color: #22c55e; font-weight: 800; font-size: 16px; }
+.tool-link {
+  display: flex; align-items: center; gap: 12px; padding: 16px; background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; color: #f1f5f9;
+  text-decoration: none; font-weight: 700; font-size: 14px; cursor: pointer; transition: all .2s;
+  width: 100%;
+}
+.tool-link:hover {
+  background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4);
+  color: #22c55e; transform: translateX(4px); box-shadow: 0 4px 15px rgba(34,197,94,0.2);
+}
+.accordion-header {
+  display: flex; align-items: center; justify-content: space-between; padding: 16px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(185,28,28,0.1));
+  border: 1px solid rgba(239,68,68,0.2); border-radius: 14px; color: #f87171;
+  font-weight: 800; font-size: 14px; cursor: pointer; transition: all .2s;
+  width: 100%;
+}
+.accordion-header:hover { background: rgba(239,68,68,0.15); box-shadow: 0 4px 15px rgba(239,68,68,0.2); }
+.chevron { transition: transform .3s ease; font-size: 12px; }
+.accordion-content {
+  display: none; flex-direction: column; gap: 8px; padding: 8px 0 8px 16px;
+  border-left: 2px solid rgba(239,68,68,0.2); margin-left: 8px; animation: fadeIn .2s ease;
+}
+.sub-link { padding: 12px 14px; font-size: 13px; background: transparent; border-color: transparent; display: flex; align-items: center; gap: 10px; transition: all 0.2s;}
+.sub-link:hover { background: rgba(255,255,255,0.05); color: #fff; transform: translateX(2px); border-radius: 8px;}
+.home-top { text-align: center; padding: 36px 12px 24px; }
+.logo-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
+.logo-bg { position: absolute; inset: 0; background: linear-gradient(135deg, #10b981, #059669); border-radius: 30px; filter: blur(16px); opacity: 0.45; }
+.logo { position: relative; width: 110px; height: 110px; background: #ffffff; border-radius: 26px; display: flex; align-items: center; justify-content: center; box-shadow: 0 12px 30px -5px rgba(0,0,0,0.6); overflow: hidden; padding: 10px; }
+.logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.greet { font-size: 13px; font-weight: 600; color: #94a3b8; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; }
+.home-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(to right, #ffffff, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.menu { display: flex; flex-direction: column; gap: 12px; padding: 0 0 28px; }
+.menu-btn { 
+  display: flex; align-items: center; gap: 16px; padding: 18px 22px; border-radius: 18px; 
+  border: 1px solid rgba(255,255,255,0.12); color: #fff; font-size: 15px; font-weight: 700; 
+  cursor: pointer; width: 100%; text-align: left; box-shadow: 0 8px 20px -4px rgba(0,0,0,0.3); transition: all .2s; 
+}
+.menu-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.menu-btn svg { width: 24px; height: 24px; flex-shrink: 0; }
+.b1 { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+.b1:hover { box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5); }
+.b2 { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+.b2:hover { box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5); }
+.b3 { background: linear-gradient(135deg, #16a34a, #15803d); }
+.b3:hover { box-shadow: 0 8px 25px rgba(22, 163, 74, 0.5); }
+.b4 { background: linear-gradient(135deg, #ea580c, #c2410c); }
+.b4:hover { box-shadow: 0 8px 25px rgba(234, 88, 12, 0.5); }
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); position: sticky; top: 0; background: rgba(11, 13, 20, 0.85); backdrop-filter: blur(12px); z-index: 10; }
+.back { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; color: #cbd5e1; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 8px 12px; transition: all 0.2s;}
+.back:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.back svg { width: 16px; height: 16px; }
+.page-title { font-size: 16px; font-weight: 800; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn-cache-top { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; border-radius: 10px; padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(16,185,129,0.25); transition: all 0.2s;}
+.btn-cache-top:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.page-body { padding: 16px 0 28px; }
+.card { background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(16px); border-radius: 20px; padding: 16px; margin-bottom: 14px; border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); }
+.card-clickable { cursor: pointer; transition: all 0.2s; }
+.card-clickable:hover { border-color: rgba(99,102,241,0.4); transform: translateY(-2px); background: rgba(255,255,255,0.06); }
+.card-title { font-size: 11px; font-weight: 800; color: #94a3b8; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+.input-group { display: flex; gap: 8px; align-items: center; }
+.input { width: 100%; padding: 12px 16px; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; font-size: 14px; background: rgba(0,0,0,0.25); color: #fff; margin-bottom: 8px; transition: all 0.2s;}
+select.input option { background: #0b0d14; color: #fff; }
+.input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.25); }
+.btn-cam {
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9); color: #fff; border: none; border-radius: 12px;
+  padding: 10px 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; height: 44px; width: 46px; box-shadow: 0 4px 12px rgba(139,92,246,0.3); transition: all 0.2s;
+}
+.btn-cam:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-cam svg { width: 22px; height: 22px; stroke: #ffffff; display: block; }
+.btn-search-web { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; border: none; border-radius: 12px; padding: 10px 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; height: 44px; font-size: 16px; transition: all 0.2s;}
+.btn-search-web:hover { filter: brightness(1.1); transform: translateY(-2px); }
+.row { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.btn { padding: 12px 18px; border: none; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;}
+.btn:hover { filter: brightness(1.1); }
+.btn-more { width: 100%; padding: 14px; border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; background: rgba(255,255,255,0.06); color: #818cf8; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 12px; text-align: center; transition: all 0.2s;}
+.btn-more:hover { background: rgba(129,140,248,0.15); border-color: #818cf8; }
+.btn-save { width: 100%; padding: 18px; border: none; border-radius: 16px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 16px; font-weight: 800; cursor: pointer; margin-top: 8px; box-shadow: 0 8px 24px -4px rgba(16,185,129,0.4); transition: all 0.2s;}
+.btn-save:hover { filter: brightness(1.1); transform: translateY(-2px); }
+.btn-save:disabled { background: rgba(255,255,255,0.1); color: #64748b; box-shadow: none; cursor: not-allowed; transform: none; filter: none; }
+.scanner-laser-box {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%; height: 68px;
+  border: 2px solid #22c55e;
+  border-radius: 12px;
+  box-shadow: 0 0 0 4000px rgba(0, 0, 0, 0.7);
+  pointer-events: none; z-index: 10;
+}
+.laser-line {
+  width: 100%; height: 2px;
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+  position: absolute; top: 0;
+  animation: scanLaser 2s infinite ease-in-out;
+}
+@keyframes scanLaser {
+  0% { top: 5%; }
+  50% { top: 95%; }
+  100% { top: 5%; }
+}
+.prod-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.prod-item:last-child { border-bottom: none; }
+.prod-thumb {
+  width: 48px; height: 48px; border-radius: 12px; background: #ffffff !important;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  overflow: hidden; font-size: 20px; border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+.prod-thumb img { 
+  width: 100%; height: 100%; object-fit: contain !important; border-radius: 6px; background: #ffffff !important;
+}
+.prod-info { flex: 1; min-width: 0; }
+.prod-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 3px; word-break: break-word; line-height: 1.3; }
+.prod-meta { font-size: 11px; color: #94a3b8; font-weight: 500; }
+.prod-counter { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.btn-qty { width: 38px; height: 38px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.06); color: #fff; font-size: 18px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.btn-qty:active { transform: scale(0.92); background: rgba(255, 255, 255, 0.2); }
+.qty-input { width: 46px; height: 38px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(0, 0, 0, 0.35); color: #38bdf8; font-size: 14px; font-weight: 800; text-align: center; font-family: inherit; }
+.qty-input:focus { outline: none; border-color: #38bdf8; }
+.barcode-highlight { color: #f87171; font-weight: 700; }
+.tab-container { display: flex; gap: 8px; margin-bottom: 14px; background: rgba(255,255,255,0.04); padding: 4px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.08); }
+.tab-btn { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: 800; color: #94a3b8; border-radius: 10px; cursor: pointer; transition: all 0.2s; border: none; background: transparent; }
+.tab-btn.active { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+.poster-preview-box {
+  width: 100%; max-width: 320px; aspect-ratio: 1 / 1.414; background: #ffffff; color: #000000;
+  margin: 16px auto; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.6); position: relative; border: 2px solid #cbd5e1;
+}
+.poster-header-banner {
+  background: #d1d5db; padding: 32px 10px 48px; text-align: center; position: relative;
+  clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);
+  -webkit-clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);
+}
+.poster-header-title {
+  font-size: 34px; font-weight: 900; color: #000000; text-transform: uppercase;
+  font-family: 'Montserrat', sans-serif; letter-spacing: 0.5px; text-shadow: 0 3px 6px rgba(0,0,0,0.12);
+}
+.poster-body-content {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+  padding: 16px 12px; text-align: center;
+}
+.poster-prod-title {
+  font-size: 22px; font-weight: 700; color: #000000; text-transform: uppercase; line-height: 1.15;
+  word-break: break-word; font-family: 'Oswald', sans-serif; letter-spacing: 0.5px; max-width: 95%;
+}
+.poster-price-container {
+  display: flex; align-items: baseline; justify-content: center; font-weight: 900; color: #000000;
+  font-family: 'Montserrat', sans-serif;
+}
+.poster-price-symbol { font-size: 28px; margin-right: 4px; font-weight: 900; }
+.poster-price-big { font-size: 105px; line-height: 0.8; font-weight: 900; letter-spacing: -3px; }
+.poster-price-cents { font-size: 42px; font-weight: 900; margin-left: 2px; }
+.bi-container { display: flex; flex-direction: column; gap: 16px; }
+.bi-kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+.bi-kpi-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 14px; display: flex; align-items: center; gap: 12px; }
+.bi-kpi-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.bi-kpi-info { display: flex; flex-direction: column; }
+.bi-kpi-label { font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+.bi-kpi-val { font-size: 20px; font-weight: 800; color: #fff; margin-top: 2px; }
+.bi-charts-row1 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.bi-chart-card { background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 16px; }
+.bi-chart-title { font-size: 12px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 12px; }
+.chart-wrapper { position: relative; width: 100%; height: 250px; }
+.modal-cam { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); backdrop-filter: blur(10px); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 16px; }
+.modal-cam-content { width: 100%; max-width: 560px; background: #111422; border-radius: 24px; border: 1px solid rgba(255,255,255,0.12); text-align: center; padding: 24px 20px; max-height: 90vh; overflow-y: auto; }
+.rel-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+.rel-stat-card { padding: 10px 4px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); text-align: center; }
+.rel-stat-val { font-size: 18px; font-weight: 800; margin-top: 2px; }
+.rel-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+.rel-table th { padding: 8px 4px; color: #94a3b8; border-bottom: 2px solid rgba(255,255,255,0.1); font-size: 11px; }
+.rel-table td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.rel-table-wrapper { max-height: 280px; overflow-y: auto; margin-top: 10px; }
+.toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px); padding: 14px 24px; border-radius: 14px; font-size: 13px; font-weight: 700; color: #fff; z-index: 10000; transition: all .3s ease; pointer-events: none; max-width: 90%; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(8px); }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.t-ok { background: rgba(16,185,129,0.92); border: 1px solid rgba(255,255,255,0.2); }
+.t-er { background: rgba(239,68,68,0.92); border: 1px solid rgba(255,255,255,0.2); }
+.t-w { background: rgba(245,158,11,0.92); border: 1px solid rgba(255,255,255,0.2); }
+.empty { text-align: center; padding: 32px 16px; color: #64748b; font-size: 13px; }
+.loading { text-align: center; padding: 28px; color: #94a3b8; font-size: 13px; }
+.spin { width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #6366f1; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 8px; gap: 10px; }
+.list-tag { display: inline-block; padding: 3px 8px; border-radius: 6px; background: rgba(99,102,241,0.15); color: #a5b4fc; font-size: 11px; font-weight: 700; margin-right: 6px; }
+.list-cat { font-size: 11px; color: #64748b; margin-top: 3px; }
+.btn-edit-item { background: rgba(59,130,246,0.15); border: none; color: #60a5fa; font-size: 14px; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.del { background: rgba(239,68,68,0.15); border: none; color: #f87171; font-size: 16px; font-weight: 700; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.checkbox-group { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; margin: 10px 0; }
+.checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #38bdf8; background: rgba(56,189,248,0.06); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(56,189,248,0.35); }
+.notif { padding: 14px; background: rgba(255,255,255,0.03); border-radius: 12px; margin-bottom: 8px; border-left: 4px solid; font-size: 13px; }
+.notif-d { border-left-color: #ef4444; background: rgba(239,68,68,0.05); }
+.notif-w { border-left-color: #f59e0b; background: rgba(245,158,11,0.05); }
+.notif-s { border-left-color: #10b981; background: rgba(16,185,129,0.05); }
+.log-item { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 14px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
+.log-date { font-weight: 800; color: #818cf8; margin-bottom: 6px; font-size: 11px; text-transform: uppercase; }
+.log-detail { color: #cbd5e1; line-height: 1.5; }
+.badge-status { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+.b-falta { background: rgba(239,68,68,0.15); color: #f87171; }
+.b-sobra { background: rgba(245,158,11,0.15); color: #fbbf24; }
+.b-ok { background: rgba(16,185,129,0.15); color: #34d399; }
+/* ============================================
+   IMPRESSÃO (CARTAZ A4 + RELATÓRIO)
+   ============================================ */
+@media print {
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body { background: #ffffff !important; }
+  body * { visibility: hidden !important; }
+  .no-print { display: none !important; }
+
+  /* ===== CARTAZ DE PROMOÇÃO (A4) ===== */
+  body.printing-cartaz .poster-preview-box,
+  body.printing-cartaz .poster-preview-box * { visibility: visible !important; }
+  body.printing-cartaz .poster-preview-box {
+    position: fixed; left: 0; top: 0;
+    width: 100%; max-width: 100%; height: 100%;
+    margin: 0; border-radius: 0; border: none;
+    box-shadow: none; page-break-after: avoid;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  body.printing-cartaz .poster-header-banner,
+  body.printing-cartaz .poster-body-content {
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  /* ===== RELATÓRIO DE CONTAGEM (MULTI-PÁGINA) ===== */
+  /* Remove do layout tudo que não é o relatório (visibility:hidden ainda ocupa espaço) */
+  body.printing-relatorio .app > *:not(#modal-relatorio) { display: none !important; }
+  body.printing-relatorio .app { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+  body.printing-relatorio #modal-relatorio,
+  body.printing-relatorio #modal-relatorio * { visibility: visible !important; }
+  body.printing-relatorio #modal-relatorio {
+    position: static !important; left: auto; top: auto;
+    width: 100%; height: auto !important; max-height: none !important;
+    background: #ffffff !important; display: block !important;
+    padding: 0; margin: 0; overflow: visible !important;
+    backdrop-filter: none; align-items: stretch; justify-content: flex-start;
+  }
+  body.printing-relatorio .modal-cam-content {
+    max-width: 100% !important; width: 100% !important;
+    background: #ffffff !important; border: none !important;
+    border-radius: 0 !important; padding: 0 !important;
+    max-height: none !important; height: auto !important;
+    overflow: visible !important; box-shadow: none !important;
+    display: block !important;
+  }
+  /* Permite que a tabela quebre entre páginas */
+  body.printing-relatorio .rel-table { page-break-inside: auto; }
+  body.printing-relatorio .rel-table thead { display: table-header-group; }
+  body.printing-relatorio .rel-table tr { page-break-inside: avoid; page-break-after: auto; }
+  body.printing-relatorio .rel-table td,
+  body.printing-relatorio .rel-table th { page-break-inside: avoid; }
+  body.printing-relatorio #rel-title,
+  body.printing-relatorio #rel-sub { color: #000000 !important; }
+  body.printing-relatorio .rel-stat-card { background: #f1f5f9 !important; border: 1px solid #cbd5e1 !important; }
+  body.printing-relatorio .rel-stat-card div { color: #000000 !important; }
+  body.printing-relatorio .rel-stat-val { color: #000000 !important; }
+  body.printing-relatorio .rel-table th { color: #000000 !important; border-bottom: 2px solid #000000 !important; }
+  body.printing-relatorio .rel-table td { color: #000000 !important; border-bottom: 1px solid #cbd5e1 !important; }
+  body.printing-relatorio .rel-table-wrapper { max-height: none !important; overflow: visible !important; }
+  body.printing-relatorio .badge-status { border: 1px solid #000000; color: #000000 !important; background: #ffffff !important; }
+}
+</style>
+<base target="_blank">
+</head>
+<body>
+<div class="app">
+<!-- TELA LOGIN -->
+<div id="p-login" class="page active">
+  <div class="home-top">
+    <div class="logo-wrapper">
+      <div class="logo-bg"></div>
+      <div class="logo"><img src="https://i.postimg.cc/d1BtBqtt/images.jpg" alt="Copasul Logo"></div>
+    </div>
+    <div class="home-title" style="margin-bottom:8px">Acesso ao Sistema</div>
+    <div class="greet">Digite suas credenciais</div>
+  </div>
+  <div class="card" style="max-width:380px;margin:0 auto">
+    <div class="card-title">IDENTIFICAÇÃO</div>
+    <input class="input" id="login-user" placeholder="Usuário (ex: admin)">
+    <input class="input" id="login-pass" type="password" placeholder="Senha">
+    <button class="btn-save" id="btn-do-login" onclick="window.executarLogin()" style="margin-top:12px">ENTRAR</button>
+    <div style="text-align:center;margin-top:20px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px">
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">Não possui um usuário de acesso?</div>
+      <button class="btn-more" id="btn-go-solicitar" onclick="window.nav('solicitar')" style="margin-top:0">Solicitar Cadastro de Acesso</button>
+    </div>
+  </div>
+</div>
+<!-- TELA SOLICITAÇÃO -->
+<div id="p-solicitar" class="page">
+  <div class="page-header">
+    <button class="back" id="btn-back-to-login" onclick="window.nav('login')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar
+    </button>
+    <div class="page-title">Solicitar Acesso</div>
+  </div>
+  <div class="page-body">
+    <div class="card">
+      <div class="card-title">PREENCHA SEUS DADOS</div>
+      <input class="input" id="sol-nome" placeholder="Seu nome completo">
+      <input class="input" id="sol-funcao" placeholder="Sua Função (ex: Operador, Caixa, Gerente)">
+      <select class="input" id="sol-local">
+        <option value="" disabled selected>Selecione o Local</option>
+        <option value="Conveniência">Conveniência</option>
+        <option value="Posto de Combustível">Posto de Combustível</option>
+        <option value="Ambos / Geral">Ambos / Geral</option>
+      </select>
+      <input class="input" id="sol-telefone" type="tel" placeholder="Telefone de contato (WhatsApp)">
+      <button class="btn-save" id="btn-send-solicitacao" onclick="window.executarSolicitacao()">Enviar Solicitação</button>
+    </div>
+  </div>
+</div>
+<!-- TELA INICIAL (HOME) -->
+<div id="p-home" class="page">
+  <div class="top-left-bar">
+    <button class="btn-hamburger" id="btn-open-tools" title="Ferramentas da Equipe">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+  </div>
+  <div class="home-top">
+    <div class="logo-wrapper">
+      <div class="logo-bg"></div>
+      <div class="logo"><img src="https://i.postimg.cc/d1BtBqtt/images.jpg" alt="Copasul Logo" draggable="false"></div>
+    </div>
+    <div class="greet" id="user-greet">Carregando...</div>
+    <div class="home-title">Escolha uma ação</div>
+  </div>
+  <div class="menu">
+    <button class="menu-btn b1" data-nav="contagem" style="display:none">Contagem de Estoque</button>
+    <button class="menu-btn b2" data-nav="cadastrar" style="display:none">Cadastrar / Editar Produtos</button>
+    <button class="menu-btn b3" data-nav="relatorio" style="display:none">Dash de Relatorio</button>
+    <button class="menu-btn b4" data-nav="notif" style="display:none">Dash de Notificacoes</button>
+  </div>
+</div>
+<!-- TELA GERADOR DE CARTAZ DE PROMOÇÃO -->
+<div id="p-cartaz" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg> Voltar</button>
+    <div class="page-title">Gerador de Cartazes</div>
+  </div>
+  <div class="page-body">
+    <div class="card">
+      <div class="card-title">MONTAR CARTAZ DE PROMOÇÃO</div>
+      <div class="input-group" style="margin-bottom:8px">
+        <input class="input" id="cartaz-search" placeholder="Buscar produto no Cache ou digite o nome...">
+      </div>
+      <select class="input" id="cartaz-filter-cat"><option value="TODAS">Todas as Categorias</option></select>
+      <select class="input" id="cartaz-select-prod"><option value="" disabled selected>Selecione um produto...</option></select>
+      <div class="row" style="margin-top:4px">
+        <div style="flex:2">
+          <div class="card-title" style="margin-bottom:4px">NOME NO CARTAZ</div>
+          <input class="input" id="cartaz-prod-name" placeholder="Ex: REFRI SPRITE PET 600ML">
+        </div>
+        <div style="flex:1">
+          <div class="card-title" style="margin-bottom:4px">PREÇO (R$)</div>
+          <input class="input" id="cartaz-prod-price" placeholder="Ex: 5,00" value="5,00">
+        </div>
+      </div>
+      <button class="btn-save" id="btn-print-cartaz" style="background:linear-gradient(135deg, #ec4899, #be185d);margin-top:10px">🖨️ Imprimir Cartaz em PDF</button>
+    </div>
+    <div class="card-title" style="margin-left:4px">PRÉ-VISUALIZAÇÃO DO CARTAZ</div>
+    <div class="poster-preview-box">
+      <div class="poster-header-banner"><div class="poster-header-title">PROMOÇÃO</div></div>
+      <div class="poster-body-content">
+        <div class="poster-prod-title" id="prev-prod-title">REFRI SPRITE PET 600ML</div>
+        <div class="poster-price-container">
+          <span class="poster-price-symbol">R$</span>
+          <span class="poster-price-big" id="prev-price-int">5</span>
+          <span class="poster-price-cents" id="prev-price-dec">,00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- TELA CONTAGEM -->
+<div id="p-contagem" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home">Voltar</button>
+    <div class="page-title">Contagem de Estoque</div>
+    <button class="btn-cache-top" id="btn-cache-contagem">🔄 Atualizar Cache</button>
+  </div>
+  <div class="page-body">
+    <div class="card">
+      <div class="card-title">Quem esta contando?</div>
+      <input class="input" id="resp" placeholder="Digite seu nome" style="margin-bottom:0">
+    </div>
+    <div class="card">
+      <div class="card-title">Pesquisar Produto</div>
+      <div class="input-group">
+        <input class="input" id="search-input" placeholder="Buscar por Nome, ID ou Cód. Barras...">
+        <button class="btn-cam" id="btn-cam-search" title="Escanear com Câmera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Selecionar Categoria</div>
+      <select class="input" id="filter-cat" style="margin-bottom:0"><option value="TODAS">Todas as Categorias</option></select>
+    </div>
+    <div id="load-contagem" class="loading"><div class="spin"></div>Carregando produtos...</div>
+    <div id="lista-contagem"></div>
+    <button class="btn-save" id="btn-save-cont" disabled>Salvar Contagem</button>
+  </div>
+</div>
+<!-- TELA CADASTRO -->
+<div id="p-cadastrar" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home">Voltar</button>
+    <div class="page-title">Cadastrar Produtos</div>
+    <button class="btn-cache-top" id="btn-cache-cadastrar">🔄 Atualizar Cache</button>
+  </div>
+  <div class="page-body">
+    <div class="card">
+      <div class="card-title" id="form-prod-title">NOVO PRODUTO</div>
+      <div class="row">
+        <input class="input" id="nid" placeholder="ID / Cód." style="flex:1;min-width:80px">
+        <input class="input" id="nname" placeholder="Nome do produto" style="flex:2;min-width:140px">
+      </div>
+      <div class="row">
+        <input class="input" id="ncat" placeholder="Categoria" style="flex:1;min-width:110px">
+        <div class="input-group" style="flex:1.4;min-width:160px">
+          <input class="input" id="ncodbarra" placeholder="Cód. de Barras">
+          <button class="btn-cam" id="btn-cam-cad" title="Escanear com Câmera">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+          <button class="btn-search-web" id="btn-search-web" title="Buscar dados do produto na Internet">🔍</button>
+        </div>
+      </div>
+      <div class="row">
+        <input class="input" id="neideal" type="number" placeholder="Estoque Ideal" style="flex:1;min-width:100px">
+        <button class="btn" id="btn-add" style="flex:1;min-width:100px">Adicionar</button>
+        <button class="btn" id="btn-cancel-edit" style="display:none;background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.3);flex:0.6;min-width:80px">Cancelar</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Produtos cadastrados</div>
+      <div class="input-group" style="margin-bottom:12px">
+        <input class="input" id="search-cad-input" placeholder="Pesquisar por Nome, ID ou Cód. Barras...">
+        <button class="btn-cam" id="btn-cam-cad-search" title="Escanear para Pesquisar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+      </div>
+      <div id="load-prod" class="loading" style="display:none"><div class="spin"></div></div>
+      <div id="plist"></div>
+    </div>
+  </div>
+</div>
+<!-- TELA DASHBOARD BI -->
+<div id="p-relatorio" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home">Voltar</button>
+    <div class="page-title">Visão geral de estoque</div>
+  </div>
+  <div class="page-body">
+    <div id="load-rel" class="loading"><div class="spin"></div>Carregando dados BI...</div>
+    <div class="bi-container" id="bi-container" style="display:none;">
+      <div class="card" style="padding:16px; height:fit-content;">
+        <div class="card-title">Filtro de tempo</div>
+        <select class="input" id="bi-filter-ano"><option value="TODOS" selected>Todos os Anos</option><option value="2026">2026</option></select>
+        <div class="card-title" style="margin-top:14px">Categoria</div>
+        <select class="input" id="bi-filter-cat"><option value="TODAS">Todas as Categorias</option></select>
+        <div class="card-title" style="margin-top:14px">Responsável</div>
+        <select class="input" id="bi-filter-resp"><option value="TODOS">Todos os Usuários</option></select>
+      </div>
+      <div>
+        <div class="bi-kpi-grid">
+          <div class="bi-kpi-card"><div class="bi-kpi-icon" style="background:rgba(124,58,237,0.2);color:#a78bfa">📊</div><div class="bi-kpi-info"><div class="bi-kpi-label">Total Contado</div><div class="bi-kpi-val" id="bi-kpi-tot-contado">0</div></div></div>
+          <div class="bi-kpi-card"><div class="bi-kpi-icon" style="background:rgba(16,185,129,0.2);color:#34d399">✔️</div><div class="bi-kpi-info"><div class="bi-kpi-label">Conformes (OK)</div><div class="bi-kpi-val" id="bi-kpi-tot-ok">0</div></div></div>
+          <div class="bi-kpi-card"><div class="bi-kpi-icon" style="background:rgba(239,68,68,0.2);color:#f87171">⚠️</div><div class="bi-kpi-info"><div class="bi-kpi-label">Divergências</div><div class="bi-kpi-val" id="bi-kpi-tot-diff">0</div></div></div>
+          <div class="bi-kpi-card"><div class="bi-kpi-icon" style="background:rgba(56,189,248,0.2);color:#38bdf8">🎯</div><div class="bi-kpi-info"><div class="bi-kpi-label">Acurácia Geral</div><div class="bi-kpi-val" id="bi-kpi-acuracia">0%</div></div></div>
+        </div>
+        <div class="bi-charts-row1">
+          <div class="bi-chart-card"><div class="bi-chart-title">Contagens ao longo do tempo</div><div class="chart-wrapper"><canvas id="chart-trend"></canvas></div></div>
+          <div class="bi-chart-card"><div class="bi-chart-title">Divergências por Categoria</div><div class="chart-wrapper"><canvas id="chart-cat"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- TELA HISTÓRICO DE RELATÓRIOS -->
+<div id="p-historico" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home">Voltar</button>
+    <div class="page-title">Histórico de Relatórios</div>
+  </div>
+  <div class="page-body">
+    <div class="card-title" style="margin-bottom: 16px; margin-left:4px;">Seus relatórios salvos</div>
+    <div id="load-historico" class="loading"><div class="spin"></div>Buscando histórico...</div>
+    <div id="historico-list"></div>
+  </div>
+</div>
+<!-- TELA MÓDULO: VALIDADES -->
+<div id="p-validade" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home">Voltar</button>
+    <div class="page-title">Controle de Validades</div>
+  </div>
+  <div class="page-body">
+    <button class="btn-save" onclick="enviarAlertaValidade()" style="background: #ef4444; margin-bottom: 15px; border-radius: 8px;">
+        <span>📩</span> Enviar Relatório por E-mail Agora
+      </button>
+    <div class="card">
+      <div class="card-title">REGISTRAR VENCIMENTO DE PRODUTO</div>
+      <div class="input-group" style="margin-bottom:8px">
+        <input class="input" id="val-search-input" placeholder="Buscar por Nome, ID ou Cód...">
+        <button class="btn-cam" id="btn-cam-val-search" title="Escanear com Câmera">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+      </div>
+      <select class="input" id="val-filter-cat"><option value="TODAS">Todas as Categorias</option></select>
+      <select class="input" id="val-select-prod"><option value="" disabled selected>Selecione um Produto...</option></select>
+      <div class="row">
+        <div style="flex:1">
+          <div class="card-title" style="margin-bottom:4px">DATA VENCIMENTO</div>
+          <input class="input" id="val-dt-venc" type="date">
+        </div>
+        <div style="flex:1">
+          <div class="card-title" style="margin-bottom:4px">QUANTIDADE</div>
+          <input class="input" id="val-qtd" type="number" min="1" value="1">
+        </div>
+      </div>
+      <input class="input" id="val-lote" placeholder="Lote / Observação (Opcional)">
+      <button class="btn-save" id="btn-save-validade">Salvar Validade</button>
+    </div>
+    <div class="card">
+      <div class="card-title">VENCIMENTOS REGISTRADOS</div>
+      <div id="load-validades" class="loading" style="display:none"><div class="spin"></div>Buscando validades...</div>
+      <div id="lista-validades"></div>
+    </div>
+  </div>
+</div>
+<!-- TELA CONTROLE DE NOTA FISCAL E CLIENTES FATURAMENTO -->
+<div id="p-notafiscal" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home">Voltar</button>
+    <div class="page-title">Notas Fiscais & Faturamento</div>
+  </div>
+  <div class="page-body">
+    <div class="tab-container">
+      <button class="tab-btn active" id="tab-btn-nf" onclick="window.alternarAbaNF('nf')">📋 Controle NF</button>
+      <button class="tab-btn" id="tab-btn-fat" onclick="window.alternarAbaNF('fat')">🏢 Clientes Faturamento</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="card-title" style="margin-bottom:0">PESQUISAR PRODUTOR / CLIENTE</div>
+        <button class="btn" id="btn-open-add-nf-modal" style="padding:6px 12px;font-size:11px;border-radius:8px;background:linear-gradient(135deg,#10b981,#059669)">➕ Novo Cadastro</button>
+      </div>
+      <input class="input" id="nf-search-input" placeholder="Digite para buscar...">
+      <div class="card-title" style="margin-top:10px;margin-bottom:4px">CATEGORIA / FILTRO</div>
+      <select class="input" id="nf-filter-cat" style="margin-bottom:0"><option value="TODAS">Todas as Categorias</option></select>
+    </div>
+    <div id="load-nf" class="loading" style="display:none"><div class="spin"></div>Carregando dados da Planilha Externa...</div>
+    <div id="view-tab-nf"><div id="lista-nf"></div></div>
+    <div id="view-tab-fat" style="display:none"><div id="lista-fat"></div></div>
+  </div>
+</div>
+<!-- TELA MÓDULO INDEPENDENTE: VENCIMENTO DE CLIENTES -->
+<div id="p-venc-clientes" class="page">
+  <div class="page-header">
+    <button class="back" data-nav="home">Voltar</button>
+    <div class="page-title">Vencimento de Clientes</div>
+  </div>
+  <div class="page-body">
+    <div class="card">
+      <div class="card-title">PESQUISAR CLIENTE</div>
+      <input class="input" id="venc-cli-search" placeholder="Buscar por Nome ou Observação...">
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+        <div>
+          <div class="card-title" style="margin-bottom:4px">STATUS</div>
+          <select class="input" id="venc-cli-filter-cat">
+            <option value="TODAS">Todos os Status</option>
+            <option value="PENDENTE">🟡 Pendente</option>
+            <option value="VENCIDO">🔴 Vencido</option>
+            <option value="QUASE">🟠 Quase Vencendo</option>
+            <option value="DIAADIA">🟢 Dia a Dia</option>
+          </select>
+        </div>
+        <div>
+          <div class="card-title" style="margin-bottom:4px">PERÍODO (DE / ATÉ)</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input class="input" id="venc-cli-dt-de" type="date" title="De (Data Inicial)" style="font-size:11px;padding:8px;margin-bottom:0;">
+            <span style="font-size:11px;color:#fbbf24;font-weight:800;">até</span>
+            <input class="input" id="venc-cli-dt-ate" type="date" title="Até (Data Final)" style="font-size:11px;padding:8px;margin-bottom:0;">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="load-venc-cli" class="loading" style="display:none"><div class="spin"></div>Carregando clientes do relatório...</div>
+    <div id="lista-venc-cliente"></div>
+  </div>
+</div>
+<!-- TELAS EXCLUSIVAS DE ADM -->
+<div id="p-admin-users" class="page">
+  <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Gestão de Usuários</div></div>
+  <div class="page-body"><div id="load-users" class="loading"><div class="spin"></div>Buscando usuários...</div><div id="admin-user-list"></div></div>
+</div>
+<div id="p-admin-logs" class="page">
+  <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Logs de Auditoria</div></div>
+  <div class="page-body"><div id="load-logs" class="loading"><div class="spin"></div>Buscando logs recentes...</div><div id="admin-logs-list"></div></div>
+</div>
+<div id="p-admin-aprovacao" class="page">
+  <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Aprovação de Acessos</div></div>
+  <div class="page-body"><div id="load-admin" class="loading"><div class="spin"></div>Buscando solicitações...</div><div id="admin-pending-list"></div></div>
+</div>
+<!-- TELA NOTIFICAÇÕES -->
+<div id="p-notif" class="page">
+  <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Notificacoes</div></div>
+  <div class="page-body"><div id="load-notif" class="loading"><div class="spin"></div>Analisando estoque...</div><div id="notif-list"></div></div>
+</div>
+<!-- MODAL SCANNER AO VIVO COM MIRA LASER E ZOOM -->
+<div class="modal-cam" id="modal-scanner-live">
+  <div class="modal-cam-content" style="max-width:480px; padding:20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div style="font-size:16px; font-weight:800; color:#fff;">Leitor de Código de Barras</div>
+      <button class="del" id="btn-close-scanner-live" style="width:36px; height:36px;">✕</button>
+    </div>
+    
+    <div style="width:100%; min-height:280px; position:relative; background:#000; border-radius:18px; overflow:hidden;">
+      <div id="interactive-reader" style="width:100%;"></div>
+      <div class="scanner-laser-box"><div class="laser-line"></div></div>
+    </div>
+    
+    <div style="font-size:12px; color:#94a3b8; margin-top:12px;">Posicione APENAS as barras na faixa verde central.</div>
+    <button class="btn-more" id="btn-zoom-toggle" onclick="window.alternarZoom()" style="margin-top:8px; background: rgba(99,102,241,0.2); border-color: #6366f1; color: #a5b4fc;">🔍 Alternar Zoom (2.5x)</button>
+    <button class="btn-more" id="btn-switch-photo-mode" style="margin-top:8px;">📷 Ou Tirar Foto da Galeria</button>
+  </div>
+</div>
+<!-- MODAIS AUXILIARES -->
+<div class="modal-cam" id="modal-relatorio">
+  <div class="modal-cam-content" style="max-width:560px;text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#fff" id="rel-title">Relatório de Contagem</div>
+        <div style="font-size:12px;color:#94a3b8" id="rel-sub"></div>
+      </div>
+      <button class="del no-print" id="btn-close-relatorio" style="width:36px;height:36px">✕</button>
+    </div>
+    <div class="rel-stats">
+      <div class="rel-stat-card"><div style="font-size:10px;color:#94a3b8">TOTAL ITENS</div><div class="rel-stat-val" id="rel-tot-itens">0</div></div>
+      <div class="rel-stat-card" style="border-color:rgba(239,68,68,0.3)"><div style="font-size:10px;color:#f87171">COM FALTA</div><div class="rel-stat-val" style="color:#f87171" id="rel-tot-falta">0</div></div>
+      <div class="rel-stat-card" style="border-color:rgba(245,158,11,0.3)"><div style="font-size:10px;color:#fbbf24">COM SOBRA</div><div class="rel-stat-val" style="color:#fbbf24" id="rel-tot-sobra">0</div></div>
+      <div class="rel-stat-card" style="border-color:rgba(16,185,129,0.3)"><div style="font-size:10px;color:#34d399">CONFORME OK</div><div class="rel-stat-val" style="color:#34d399" id="rel-tot-ok">0</div></div>
+    </div>
+    <div class="rel-table-wrapper">
+      <table class="rel-table" id="res-tabela">
+        <thead><tr><th>Produto</th><th>Ideal</th><th>Real</th><th>Dif.</th><th>Status</th></tr></thead>
+        <tbody id="rel-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-print-pdf no-print" id="btn-print-relatorio">📄 Baixar PDF / Imprimir</button>
+  </div>
+</div>
+<div class="modal-cam" id="modal-add-item">
+  <div class="modal-cam-content" style="max-width:560px;text-align:left;height:80vh;display:flex;flex-direction:column;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0">
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#fff">Adicionar Item</div>
+        <div style="font-size:12px;color:#94a3b8" id="add-item-sub">Ao relatório</div>
+      </div>
+      <button class="del" id="btn-close-add-item" style="width:36px;height:36px">✕</button>
+    </div>
+    <div class="input-group" style="margin-bottom:12px;flex-shrink:0">
+      <input class="input" id="search-add-item" placeholder="Buscar por Nome, ID ou Cód...">
+    </div>
+    <div id="lista-add-item" style="flex:1;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px"></div>
+  </div>
+</div>
+<div class="modal-cam" id="modal-quick-validade">
+  <div class="modal-cam-content" style="max-width:380px;text-align:left;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:800;color:#fff;word-break:break-word" id="qv-prod-nome">Registrar Validade</div>
+      <button class="del" id="btn-close-qv" style="width:32px;height:32px">✕</button>
+    </div>
+    <input type="hidden" id="qv-prod-id">
+    <div class="card-title" style="margin-bottom:4px">DATA DE VENCIMENTO</div>
+    <input class="input" id="qv-dt-venc" type="date">
+    <div class="card-title" style="margin-top:8px;margin-bottom:4px">QUANTIDADE</div>
+    <input class="input" id="qv-qtd" type="number" min="1" value="1">
+    <input class="input" id="qv-lote" placeholder="Lote / Observação (Opcional)" style="margin-top:4px">
+    <button class="btn-save" id="btn-save-qv" style="margin-top:10px">Confirmar Validade</button>
+  </div>
+</div>
+<div class="modal-cam" id="modal-venc-cliente-edit">
+  <div class="modal-cam-content" style="max-width:400px;text-align:left;padding:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:800;color:#fff;word-break:break-word" id="vc-cliente-nome">Vencimento de Cliente</div>
+      <button class="del" id="btn-close-vc" style="width:32px;height:32px">✕</button>
+    </div>
+    <input type="hidden" id="vc-cliente-id">
+    <div class="row">
+      <div style="flex:1">
+        <div class="card-title" style="margin-bottom:4px">VENCIMENTO (DE)</div>
+        <input class="input" id="vc-dt-venc" type="date">
+      </div>
+      <div style="flex:1">
+        <div class="card-title" style="margin-bottom:4px">ATÉ (PRORROGAÇÃO)</div>
+        <input class="input" id="vc-dt-venc-ate" type="date">
+      </div>
+    </div>
+    <div class="card-title" style="margin-top:8px;margin-bottom:4px">OBSERVAÇÃO / INSTRUÇÃO</div>
+    <input class="input" id="vc-obs" placeholder="Ex: Avisar Marlon antes de enviar, ligar de manhã...">
+    <button class="btn-save" id="btn-save-vc" style="margin-top:10px">Salvar Vencimento</button>
+  </div>
+</div>
+<div class="modal-cam" id="modal-perfil-user">
+  <div class="modal-cam-content" style="max-width:440px;text-align:left;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#fff" id="prof-avatar">U</div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#fff" id="prof-nome">Nome do Usuário</div>
+          <div style="font-size:11px;color:#94a3b8" id="prof-login">@usuario</div>
+        </div>
+      </div>
+      <button class="del" id="btn-close-prof" style="width:32px;height:32px">✕</button>
+    </div>
+    <input type="hidden" id="prof-user-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:10px;color:#94a3b8;font-weight:800">ID</div>
+        <div style="font-size:13px;font-weight:700;color:#fff" id="prof-id">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:10px;color:#94a3b8;font-weight:800">FUNÇÃO</div>
+        <div style="font-size:13px;font-weight:700;color:#fff" id="prof-funcao">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:10px;color:#94a3b8;font-weight:800">LOCAL</div>
+        <div style="font-size:13px;font-weight:700;color:#fff" id="prof-local">-</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:10px;color:#94a3b8;font-weight:800">WHATSAPP</div>
+        <div style="font-size:13px;font-weight:700;color:#38bdf8" id="prof-telefone">-</div>
+      </div>
+    </div>
+    <div class="card-title" style="margin-bottom:6px">PERMISSÕES DE ACESSO DO USUÁRIO</div>
+    <div class="checkbox-group" style="margin-bottom:14px;">
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-contagem"> Contagem</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-cadastrar"> Cadastrar</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-relatorio"> Relatórios</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-notif"> Notificações</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-validade"> Validades</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-cartaz"> Cartaz Promoção</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-notafiscal"> Notas Fiscais</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-ordemcompra"> Ordem de Compra</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-gestao"> Gestão de Controle</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-vencclientes"> Venc. Clientes</label>
+      <label class="checkbox-item"><input type="checkbox" id="prof-p-disparos"> Disparos WPP</label>
+    </div>
+    <button class="btn-save" id="btn-save-prof-perms">Salvar Alterações de Permissões</button>
+  </div>
+</div>
+<div class="modal-cam" id="modal-add-nf-cliente">
+  <div class="modal-cam-content" style="max-width:440px;text-align:left;padding:22px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px;">
+      <div style="font-size:16px;font-weight:800;color:#fff">Adicionar Novo Produtor / Cliente</div>
+      <button class="del" id="btn-close-add-nf-modal" style="width:32px;height:32px">✕</button>
+    </div>
+    <div class="card-title" style="margin-bottom:4px">ONDE DESEJA CADASTRAR?</div>
+    <select class="input" id="add-nf-tipo" style="margin-bottom:12px">
+      <option value="NF" selected>Aba Controle NF</option>
+      <option value="FAT">Aba Clientes Faturamento</option>
+    </select>
+    <div id="form-group-nf">
+      <div class="card-title" style="margin-bottom:4px">NOME DO PRODUTOR / CLIENTE</div>
+      <input class="input" id="add-nf-nome" placeholder="Ex: 1234- AGRO COPASUL">
+      <div class="row">
+        <div style="flex:1">
+          <div class="card-title" style="margin-bottom:4px">FREQUÊNCIA</div>
+          <select class="input" id="add-nf-freq">
+            <option value="DIA" selected>DIA</option>
+            <option value="JUNTAR">JUNTAR</option>
+            <option value="MENSAL">MENSAL</option>
+          </select>
+        </div>
+        <div style="flex:1">
+          <div class="card-title" style="margin-bottom:4px">CANAL</div>
+          <select class="input" id="add-nf-canal">
+            <option value="EMAIL" selected>EMAIL</option>
+            <option value="WPP">WPP</option>
+            <option value="CAIXA">CAIXA</option>
+            <option value="RETIRAR">RETIRAR</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-title" style="margin-bottom:4px">DESTINO / CONTATO (E-MAIL OU TELEFONE)</div>
+      <input class="input" id="add-nf-contato" placeholder="Ex: despesas@copasul.com.br ou 67999...">
+    </div>
+    <div id="form-group-fat" style="display:none">
+      <div class="card-title" style="margin-bottom:4px">CATEGORIA DO FATURAMENTO</div>
+      <select class="input" id="add-fat-cat">
+        <option value="FICHARIO" selected>📁 Fichário</option>
+        <option value="EMAIL">✉️ E-mail</option>
+        <option value="CAIXA">🧑‍💼 Caixa - Responsável</option>
+        <option value="WHATSAPP">💬 WhatsApp</option>
+        <option value="ENTREGA">🚚 Entrega</option>
+        <option value="AVISOS">⚠️ Avisos</option>
+      </select>
+      <div class="card-title" style="margin-bottom:4px">NOME DO CLIENTE OU AVISO</div>
+      <input class="input" id="add-fat-nome" placeholder="Ex: JOÃO DA SILVA">
+      <div id="group-fat-resp" style="display:none">
+        <div class="card-title" style="margin-bottom:4px">RESPONSÁVEL / AVISO (APENAS PARA CAIXA)</div>
+        <input class="input" id="add-fat-resp" placeholder="Ex: AVISAR MARLON">
+      </div>
+    </div>
+    <button class="btn-save" id="btn-save-novo-cliente-nf" style="margin-top:14px">Salvar na Planilha Externa</button>
+  </div>
+</div>
+<input type="file" id="file-cam-input" accept="image/*" capture="environment" style="display:none">
+<div id="reader" style="display:none;"></div>
+<div class="toast" id="toast"></div>
+</div> <!-- FECHA DIV .app -->
+<!-- Painel Lateral / Drawer -->
+<div class="drawer-overlay" id="drawer-tools">
+  <div class="drawer-content">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.4a1 1 0 0 0 1.4 0l3.7-3.7a1 1 0 0 0 0-1.4l-1.6-1.4a1 1 0 0 0-1.4 0l-3.7 3.7z"/><path d="M5 13l4 4"/><path d="M11 20l4-4"/><path d="M15 12l2 2"/><path d="M18.8 3.2L12.5 9.5a2.12 2.12 0 0 0-.6 1.5V14h3a2.12 2.12 0 0 0 1.5-.6l6.3-6.3a1.5 1.5 0 0 0 0-2.1l-2.9-2.9a1.5 1.5 0 0 0-2 0z"/><path d="M3 21h18"/></svg>
+        Ferramentas
+      </div>
+      <button class="del" id="btn-close-tools" style="width:32px;height:32px">✕</button>
+    </div>
+    <div id="admin-section" style="display:none; margin-bottom:12px">
+      <div class="accordion-header" id="btn-toggle-adm">
+        <div style="display:flex;align-items:center;gap:12px;"><span>🛡️</span> GESTÃO ADM</div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-content" id="adm-submenu">
+        <div class="tool-link sub-link" data-nav="admin-aprovacao">🔓 Aprovação de Acessos</div>
+        <div class="tool-link sub-link" data-nav="admin-users">👥 Gerenciar Usuários</div>
+        <div class="tool-link sub-link" data-nav="admin-logs">📋 Logs de Auditoria</div>
+        <div class="tool-link sub-link" id="btn-sync-fotos" style="color:#38bdf8; font-weight: 800;">🖼️ Sincronizar Fotos Web</div>
+      </div>
+    </div>
+    <div style="margin-bottom:12px" data-perm="notafiscal">
+      <div class="accordion-header" id="btn-toggle-nf" style="background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(5,150,105,0.1)); border-color: rgba(16,185,129,0.3); color: #34d399;">
+        <div style="display:flex;align-items:center;gap:12px;"><span>📄</span> NOTA FISCAL CONTROLE</div>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="accordion-content" id="nf-submenu">
+        <div class="tool-link sub-link" data-nav="notafiscal" style="color:#34d399;">📱 Ver NFs & Faturamento</div>
+        <a href="https://docs.google.com/spreadsheets/d/13O7z3TwdUQPUceZkxsP_Yursjlw3ybAHaPCxbSINj9g/edit?gid=814833385#gid=814833385" target="_blank" class="tool-link sub-link">🟢 Abrir Planilha Externa</a>
+      </div>
+    </div>
+    <div class="tool-link" data-nav="venc-clientes" data-perm="vencclientes" style="border-color:rgba(245,158,11,0.3);color:#fbbf24;"><span>📅</span> Vencimento de Clientes</div>
+    <a href="disparos.html" data-perm="disparos" class="tool-link" style=border-color:rgba(16,185,129,0.3);color:#34d399;"><span>💬</span> Disparos em Lote (WhatsApp)</a>
+    <a href="https://script.google.com/macros/s/AKfycbykpJP2ncPdJ9yjn0gbyAsbRB_j8yTclOMMIOBXfGwLmauuGgyn1lpKS4XbxRuAUL90/exec" target="_blank" class="tool-link" data-perm="ordemcompra"><span>🛒</span> Gerador de Ordem de Compra</a>
+    <a href="https://script.google.com/macros/s/AKfycbwGujfCLrrYW1lOKif7KghTY7ltZDrJGyerwg-RCRmhdVo9zvPhF612OK616pG9wdd9/exec" target="_blank" class="tool-link" data-perm="gestao"><span>⚙️</span> Gestão de Controle</a>
+    <div class="tool-link" data-nav="historico" data-perm="relatorio" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;"><span>📄</span> Histórico de Relatórios Salvos</div>
+    <div class="tool-link" data-nav="validade" data-perm="validade" style="border-color:rgba(245,158,11,0.3);color:#fbbf24;"><span>📅</span> Controle de Validades</div>
+    <div class="tool-link" data-nav="cartaz" data-perm="cartaz" style="border-color:rgba(236,72,153,0.3);color:#f472b6;"><span>🏷️</span> Gerador de Cartaz de Promoção</div>
+    <div class="tool-link" id="btn-logout" style="margin-top:auto;border-color:rgba(239,68,68,0.3);color:#f87171;cursor:pointer"><span>🚪</span> Sair da Conta</div>
+  </div>
+</div>
+<script>
+  var modoEdicao = false;
+  
+window.enviarAlertaValidade = function() {
+  if(!confirm("Deseja enviar o relatório de validades para os e-mails cadastrados agora?")) return;
+  
+  alert("O relatório está sendo gerado e enviado. Isso pode levar alguns segundos...");
+  
+  fetch(GOOGLE_WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'dispararRelatorioValidadesEmail' })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if(res.sucesso) {
+      alert("✅ " + res.mensagem);
+    } else {
+      alert("❌ " + res.mensagem);
+    }
+  }).catch(e => alert("Erro na comunicação."));
+};
+// FUNÇÃO PARA SOMAR ESTOQUE EM LOTE
+window.somarEmLote = function(id) {
+  var inputEl = document.getElementById('qty-' + id);
+  if (!inputEl) return;
+  
+  var valorAtual = parseInt(inputEl.value) || 0;
+  var valorAdicionar = prompt("Estoque atual: " + valorAtual + "\n\nQuanto você deseja ADICIONAR a este valor?");
+  
+  if (valorAdicionar !== null && valorAdicionar.trim() !== "") {
+    var numAdicionar = parseInt(valorAdicionar);
+    
+    if (!isNaN(numAdicionar) && numAdicionar > 0) {
+      var novoTotal = valorAtual + numAdicionar;
+      window.definirQtd(id, novoTotal);
+    } else {
+      alert("Por favor, digite um número válido maior que zero.");
+    }
+  }
+};
+// VARIAVEIS GLOBAIS
+var usuarioLogado = null;
+var activeTargetInputId = '';
+var activeScanCallback = null;
+var modoEdicao = false;
+var produtosContagem = [];
+var contagensAtuais = {};
+var limiteExibicao = 50;
+var prodsCadastrados = [];
+var limiteCadExibicao = 50;
+var historicoSalvoData = [];
+var relatorioAtivoAdicao = null;
+var validadesData = [];
+var adminUsuariosList = [];
+var nfDadosList = [];
+var fatDadosObj = { fichario: [], email: [], caixaResponsavel: [], whatsapp: [], entrega: [], avisos: [] };
+var vencClientesList = [];
+var limiteVencCliExibicao = 50;
+var abaNFAtiva = 'nf';
+var chartTrendInstance = null;
+var chartCatInstance = null;
+var rawBiData = null;
+var html5QrCodeLive = null;
+var zoomAtual = 1;
+var mapaValidades = {};
+function safeAddEvent(id, evt, fn) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener(evt, fn);
+}
+function formatarDataBR(dataIso) {
+  if (!dataIso) return '';
+  if (dataIso.indexOf('/') > -1) return dataIso;
+  var p = dataIso.split('-');
+  if (p.length === 3) return p[2] + '/' + p[1] + '/' + p[0];
+  return dataIso;
+}
+function dateBRtoIso(dt) {
+  if (!dt) return '';
+  var p = dt.split('/');
+  return p.length === 3 ? p[2] + '-' + p[1] + '-' + p[0] : dt;
+}
+function norm(val) {
+  return String(val || '').trim().toLowerCase().replace(/^0+/, '');
+}
+window.toast = function(t, tipo) {
+  var el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = t;
+  el.className = 'toast t-' + tipo;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 3500);
+};
+window.atualizarMapaValidades = function() {
+  mapaValidades = {};
+  (validadesData || []).forEach(function(v) {
+    if (v.dataVenc) {
+      var id = norm(v.idProduto || v.id || v.produtoId);
+      var cod = norm(v.codBarra || v.codigoBarras);
+      if(id) mapaValidades['id_' + id] = v.dataVenc;
+      if(cod) mapaValidades['cod_' + cod] = v.dataVenc;
+    }
+  });
+};
+window.atualizarVisibilidadeMenu = function() {
+  document.querySelectorAll('.menu-btn').forEach(function(b){ b.style.display = 'none'; });
+  document.querySelectorAll('[data-perm]').forEach(function(el){ el.style.display = 'none'; });
+  if (usuarioLogado) {
+    var isAdm = (usuarioLogado.funcao && usuarioLogado.funcao.toLowerCase().indexOf('gerente') !== -1 || 
+                 usuarioLogado.funcao && usuarioLogado.funcao.toLowerCase().indexOf('administrador') !== -1 || 
+                 (usuarioLogado.permissoes && usuarioLogado.permissoes.indexOf('admin') !== -1) || 
+                 (usuarioLogado.usuario && usuarioLogado.usuario.toLowerCase() === 'admin'));
+    if (isAdm) {
+      document.querySelectorAll('.menu-btn').forEach(function(b){ b.style.display = 'flex'; });
+      document.querySelectorAll('[data-perm]').forEach(function(el){ el.style.display = 'flex'; });
+      var admSec = document.getElementById('admin-section');
+      if (admSec) admSec.style.display = 'block';
+    } else if (usuarioLogado.permissoes) {
+      usuarioLogado.permissoes.forEach(function(p){
+        var btnModulo = document.querySelector('.menu-btn[data-nav="' + p + '"]');
+        if(btnModulo) btnModulo.style.display = 'flex';
+        document.querySelectorAll('[data-perm="' + p + '"]').forEach(function(el){
+          el.style.display = 'flex';
+        });
+      });
+      var admSec = document.getElementById('admin-section');
+      if (admSec) admSec.style.display = 'none';
+    }
+  }
+};
+window.nav = function(page){
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  var pageEl = document.getElementById('p-' + page);
+  if (pageEl) pageEl.classList.add('active');
+  window.scrollTo(0,0);
+  
+  if(page==='contagem') window.carregarContagem();
+  if(page==='cadastrar') window.carregarProdutos();
+  if(page==='historico') window.carregarHistorico();
+  if(page==='relatorio') window.carregarRelatorio();
+  if(page==='notif') window.carregarNotificacoes();
+  if(page==='validade') window.carregarValidades();
+  if(page==='cartaz') window.prepararTelaCartaz();
+  if(page==='notafiscal') window.carregarNotasFiscais();
+  if(page==='venc-clientes') window.carregarVencimentosClientesPage();
+  if(page==='admin-aprovacao') window.carregarSolicitacoesPendentes();
+  if(page==='admin-users') window.carregarUsuariosAdmin();
+  if(page==='admin-logs') window.carregarLogsAdmin();
+};
+window.debounce = function(func, wait) {
+  var timeout;
+  return function() {
+    var context = this, args = arguments;
+    clearTimeout(timeout);
+    timeout = setTimeout(function() { func.apply(context, args); }, wait);
+  };
+};
+window.gerarCodigoAleatorio = function(prefixo) {
+  var letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  var letra = prefixo || letras.charAt(Math.floor(Math.random() * letras.length));
+  var num = Math.floor(1000 + Math.random() * 9000);
+  return letra + num;
+};
+// Gera usuário e senha aleatórios para aprovação de acesso
+window.gerarCredenciaisAcesso = function(nome) {
+  var base = String(nome || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+  if (!base) base = 'user';
+  base = base.substring(0, 10);
+  var usuario = base + Math.floor(100 + Math.random() * 900);
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  var senha = '';
+  for (var i = 0; i < 6; i++) senha += chars.charAt(Math.floor(Math.random() * chars.length));
+  return { usuario: usuario, senha: senha };
+};
+// Preenche (ou regenera) usuário/senha de uma solicitação pendente
+window.preencherCredenciais = function(id, nome, regenerar) {
+  var uEl = document.getElementById('adm-u-' + id);
+  var pEl = document.getElementById('adm-p-' + id);
+  if (!uEl || !pEl) return;
+  if (regenerar || !uEl.value.trim()) {
+    var cred = window.gerarCredenciaisAcesso(nome);
+    uEl.value = cred.usuario;
+    pEl.value = cred.senha;
+  }
+};
+// SCANNER AO VIVO
+window.abrirScannerAoVivo = function(targetInputId, callbackOnScan) {
+  activeTargetInputId = targetInputId;
+  activeScanCallback = callbackOnScan;
+  zoomAtual = 1;
+  
+  document.getElementById('modal-scanner-live').style.display = 'flex';
+  
+  if (!html5QrCodeLive) {
+    html5QrCodeLive = new Html5Qrcode("interactive-reader");
+  }
+  const config = { 
+    fps: 20, 
+    qrbox: { width: 280, height: 65 },
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E
+    ]
+  };
+  function aoEscanear(decodedText) {
+    window.pararScannerAoVivo();
+    var input = document.getElementById(activeTargetInputId);
+    if (input) {
+      var limpo = decodedText.trim();
+      if (/^\d[\d\s-]*\d$/.test(limpo)) {
+        limpo = limpo.replace(/\D/g, '');
+      }
+      input.value = limpo;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    window.toast('Lido ao vivo: ' + decodedText, 'ok');
+    if (activeScanCallback) activeScanCallback();
+  }
+  html5QrCodeLive.start(
+    { facingMode: "environment" },
+    config,
+    aoEscanear,
+    function() {}
+  ).catch(function() {
+    html5QrCodeLive.start(
+      { facingMode: "user" },
+      config,
+      aoEscanear,
+      function() {}
+    ).catch(function() {
+      window.toast('Não foi possível acessar a câmera do dispositivo.', 'er');
+    });
+  });
+};
+window.alternarZoom = function() {
+  if (!html5QrCodeLive || !html5QrCodeLive.isScanning) return;
+  const videoEl = document.querySelector("#interactive-reader video");
+  
+  if (videoEl && videoEl.srcObject) {
+    const track = videoEl.srcObject.getVideoTracks()[0];
+    const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+    
+    if (capabilities.zoom) {
+      zoomAtual = zoomAtual === 1 ? Math.min(2.5, capabilities.zoom.max) : 1;
+      track.applyConstraints({ advanced: [{ zoom: zoomAtual }] });
+      window.toast('Zoom: ' + zoomAtual + 'x', 'ok');
+    } else {
+      window.toast('Zoom não suportado no navegador do computador.', 'w');
+    }
+  }
+};
+window.pararScannerAoVivo = function() {
+  if (html5QrCodeLive && html5QrCodeLive.isScanning) {
+    html5QrCodeLive.stop().then(function() {
+      document.getElementById('modal-scanner-live').style.display = 'none';
+    }).catch(function() {
+      document.getElementById('modal-scanner-live').style.display = 'none';
+    });
+  } else {
+    document.getElementById('modal-scanner-live').style.display = 'none';
+  }
+};
+window.executarLogin = function() {
+  var u = (document.getElementById('login-user').value || '').trim();
+  var p = (document.getElementById('login-pass').value || '').trim();
+  if(!u || !p) { window.toast('Preencha usuário e senha!', 'er'); return; }
+  
+  var btn = document.getElementById('btn-do-login'); 
+  if (btn) { btn.disabled = true; btn.textContent = 'Aguarde...'; }
+  var timerTrava = setTimeout(function() {
+    if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
+    window.toast('Servidor demorou a responder. Tente novamente.', 'er');
+  }, 31000);
+  google.script.run
+    .withSuccessHandler(function(res){
+      clearTimeout(timerTrava);
+      if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
+      
+      if(res && res.sucesso) {
+        usuarioLogado = res.usuario;
+        var primeiroNome = usuarioLogado.nome ? usuarioLogado.nome.split(' ')[0] : 'Usuário';
+        document.getElementById('user-greet').textContent = 'Olá, ' + primeiroNome + '!';
+        var respInput = document.getElementById('resp');
+        if (respInput) respInput.value = usuarioLogado.nome || '';
+        
+        window.atualizarVisibilidadeMenu();
+        window.toast('Login efetuado com sucesso!', 'ok'); 
+        window.nav('home');
+      } else { 
+        window.toast(res ? res.mensagem : 'Usuário ou senha inválidos!', 'er'); 
+      }
+    })
+    .withFailureHandler(function(err){
+      clearTimeout(timerTrava);
+      if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
+      window.toast('Erro no servidor ao realizar login.', 'er');
+    })
+    .fazerLogin(u, p);
+};
+window.executarSolicitacao = function() {
+  var nome = (document.getElementById('sol-nome').value || '').trim();
+  var funcao = (document.getElementById('sol-funcao').value || '').trim();
+  var local = document.getElementById('sol-local').value;
+  var telefone = (document.getElementById('sol-telefone').value || '').trim();
+  if(!nome || !funcao || !local || !telefone) { 
+    window.toast('Preencha todos os campos da solicitação!', 'er'); 
+    return; 
+  }
+  var btn = document.getElementById('btn-send-solicitacao'); 
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  
+  google.script.run
+    .withSuccessHandler(function(res){
+      if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitação'; }
+      if(res && res.sucesso) { 
+        window.toast(res.mensagem, 'ok'); 
+        window.nav('login'); 
+      } else { 
+        window.toast(res ? res.mensagem : 'Erro na solicitação', 'er'); 
+      }
+    })
+    .withFailureHandler(function(err){ 
+      if (btn) { btn.disabled = false; btn.textContent = 'Enviar Solicitação'; }
+      window.toast('Erro de comunicação.', 'er'); 
+    })
+    .solicitarAcesso({ nome: nome, funcao: funcao, local: local, telefone: telefone });
+  };
+  function carregarSistemaOtimizado() {
+  const cacheValidades = localStorage.getItem('cache_validades');
+  const cacheClientes = localStorage.getItem('cache_clientes');
+
+  if (cacheValidades && typeof renderizarValidades === 'function') {
+    renderizarValidades(JSON.parse(cacheValidades));
+  }
+  if (cacheClientes && typeof renderizarClientes === 'function') {
+    renderizarClientes(JSON.parse(cacheClientes));
+  }
+
+  fetch(GOOGLE_WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'carregarDadosIniciais' })
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.sucesso) {
+      localStorage.setItem('cache_validades', JSON.stringify(res.validades));
+      localStorage.setItem('cache_clientes', JSON.stringify(res.clientes));
+      if (typeof renderizarValidades === 'function') renderizarValidades(res.validades);
+      if (typeof renderizarClientes === 'function') renderizarClientes(res.clientes);
+    }
+  })
+  .catch(err => console.log("Usando memória local:", err));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Carrega os dados otimizados assim que a página abre
+  carregarSistemaOtimizado();
+
+  // ABRIR E FECHAR O MENU LATERAL (DRAWER)
+  safeAddEvent('btn-open-tools', 'click', function() {
+    document.getElementById('drawer-tools').style.display = 'flex';
+  });
+  safeAddEvent('btn-close-tools', 'click', function() {
+    document.getElementById('drawer-tools').style.display = 'none';
+  });
+  safeAddEvent('drawer-tools', 'click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+  });
+
+  // Navegação geral por botões
+  document.querySelectorAll('[data-nav]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var target = this.getAttribute('data-nav');
+      var drawer = document.getElementById('drawer-tools');
+      if (drawer) drawer.style.display = 'none';
+      window.nav(target);
+    });
+  });
+});
+  safeAddEvent('file-cam-input', 'change', async function(e) {
+    if (!e.target.files || e.target.files.length === 0) return;
+    var imageFile = e.target.files[0];
+    window.toast('Processando imagem...', 'ok');
+    
+    try {
+      var decodedText = null;
+      
+      if ('BarcodeDetector' in window) {
+        try {
+          var detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'] });
+          var bitmap = await createImageBitmap(imageFile);
+          var barcodes = await detector.detect(bitmap);
+          if (barcodes && barcodes.length > 0) {
+            decodedText = barcodes[0].rawValue;
+          }
+        } catch(eDetector) {
+          console.log("BarcodeDetector nativo falhou, usando Html5Qrcode...", eDetector);
+        }
+      }
+      
+      if (!decodedText) {
+        var html5QrCode = new Html5Qrcode("reader");
+        decodedText = await html5QrCode.scanFile(imageFile, true);
+      }
+      if (decodedText) {
+        var input = document.getElementById(activeTargetInputId);
+        if (input) {
+          var limpo = decodedText.trim();
+          if (/^\d[\d\s-]*\d$/.test(limpo)) {
+            limpo = limpo.replace(/\D/g, '');
+          }
+          input.value = limpo;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        window.toast('Lido com sucesso: ' + decodedText, 'ok');
+        if (activeScanCallback) activeScanCallback();
+      } else {
+        window.toast('Código de barras não identificado na imagem. Foque melhor.', 'er');
+      }
+    } catch(err) {
+      console.error("Erro no processamento da foto:", err);
+      window.toast('Não foi possível ler o código na foto.', 'er');
+    } finally {
+      e.target.value = '';
+    }
+  });
+  safeAddEvent('btn-close-scanner-live', 'click', window.pararScannerAoVivo);
+  safeAddEvent('btn-switch-photo-mode', 'click', function() {
+    window.pararScannerAoVivo();
+    document.getElementById('file-cam-input').click();
+  });
+  safeAddEvent('btn-cam-search', 'click', function() { window.abrirScannerAoVivo('search-input', function() { window.renderContagem(); }); });
+  safeAddEvent('btn-cam-cad', 'click', function() { window.abrirScannerAoVivo('ncodbarra', window.consultarProdutoInternet); });
+  safeAddEvent('btn-cam-cad-search', 'click', function() { window.abrirScannerAoVivo('search-cad-input', function() { window.renderListaCadastrados(); }); });
+  safeAddEvent('btn-cam-val-search', 'click', function() { window.abrirScannerAoVivo('val-search-input', function() { window.popularSelectValidades(); }); });
+  // EVENTOS DE BUSCA OTIMIZADOS
+  safeAddEvent('search-input', 'input', window.debounce(function(){ limiteExibicao = 50; window.renderContagem(); }, 250));
+  safeAddEvent('search-cad-input', 'input', window.debounce(function(){ limiteCadExibicao = 50; window.renderListaCadastrados(); }, 250));
+  safeAddEvent('search-add-item', 'input', window.debounce(function(){ window.renderListaAdicaoItem(); }, 250));
+  safeAddEvent('val-search-input', 'input', window.debounce(function(){ window.popularSelectValidades(); }, 250));
+  safeAddEvent('cartaz-search', 'input', window.debounce(function(){ window.popularSelectCartaz(); }, 250));
+  safeAddEvent('nf-search-input', 'input', window.debounce(function(){ window.renderAbaSelecionadaNF(); }, 250));
+  safeAddEvent('nf-filter-cat', 'change', function(){ window.renderAbaSelecionadaNF(); });
+  safeAddEvent('venc-cli-search', 'input', window.debounce(function(){ limiteVencCliExibicao = 50; window.renderListaVencClientes(); }, 250));
+  safeAddEvent('venc-cli-filter-cat', 'change', function(){ limiteVencCliExibicao = 50; window.renderListaVencClientes(); });
+  safeAddEvent('venc-cli-dt-de', 'change', function(){ limiteVencCliExibicao = 50; window.renderListaVencClientes(); });
+  safeAddEvent('venc-cli-dt-ate', 'change', function(){ limiteVencCliExibicao = 50; window.renderListaVencClientes(); });
+  safeAddEvent('filter-cat', 'change', function(){ limiteExibicao = 50; window.renderContagem(); });
+  safeAddEvent('cartaz-filter-cat', 'change', function() { window.popularSelectCartaz(); });
+  safeAddEvent('val-filter-cat', 'change', function() { window.popularSelectValidades(); });
+  
+  safeAddEvent('cartaz-select-prod', 'change', function() {
+    var id = this.value;
+    var prod = produtosContagem.find(function(p){ return String(p.id) === String(id); });
+    if (prod) {
+      document.getElementById('cartaz-prod-name').value = prod.nome.toUpperCase();
+      window.atualizarPreviewCartaz();
+    }
+  });
+  safeAddEvent('cartaz-prod-name', 'input', window.atualizarPreviewCartaz);
+  safeAddEvent('cartaz-prod-price', 'input', window.atualizarPreviewCartaz);
+  // BOTÕES DE ATUALIZAÇÃO DE CACHE
+  safeAddEvent('btn-cache-contagem', 'click', function() {
+    var btn = this; btn.disabled = true; btn.textContent = '🔄 Atualizando...';
+    google.script.run
+      .withSuccessHandler(function(res) { 
+        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache'; 
+        window.toast(res ? res.mensagem : 'Cache atualizado!', (res && res.sucesso !== false) ? 'ok' : 'er'); 
+        if (!res || res.sucesso !== false) window.carregarContagem(); 
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache';
+        window.toast('Erro ao comunicar com o servidor de cache.', 'er');
+      })
+      .atualizarCache();
+  });
+  safeAddEvent('btn-cache-cadastrar', 'click', function() {
+    var btn = this; btn.disabled = true; btn.textContent = '🔄 Atualizando...';
+    google.script.run
+      .withSuccessHandler(function(res) { 
+        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache'; 
+        window.toast(res ? res.mensagem : 'Cache atualizado!', (res && res.sucesso !== false) ? 'ok' : 'er'); 
+        if (!res || res.sucesso !== false) window.carregarProdutos(); 
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache';
+        window.toast('Erro ao comunicar com o servidor de cache.', 'er');
+      })
+      .atualizarCache();
+  });
+  safeAddEvent('btn-save-validade', 'click', function() {
+    var idProd = document.getElementById('val-select-prod').value;
+    var dtVencRaw = document.getElementById('val-dt-venc').value;
+    var dtVenc = formatarDataBR(dtVencRaw);
+    var qtd = document.getElementById('val-qtd').value;
+    var lote = document.getElementById('val-lote').value;
+    if (!idProd) { window.toast('Selecione um produto!', 'er'); return; }
+    if (!dtVenc) { window.toast('Informe a data de vencimento!', 'er'); return; }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    var prodObj = produtosContagem.find(function(p){ return norm(p.id) === norm(idProd); });
+    var nomeProd = prodObj ? prodObj.nome : '';
+    var payload = {
+      id: String(idProd).trim(),
+      idProduto: String(idProd).trim(),
+      produtoId: String(idProd).trim(),
+      nome: nomeProd,
+      nomeProduto: nomeProd,
+      codBarra: prodObj ? String(prodObj.codBarra || '').trim() : '',
+      dataVenc: dtVenc,
+      dataVencimento: dtVenc,
+      quantidade: Number(qtd) || 1,
+      qtd: Number(qtd) || 1,
+      lote: lote || '',
+      usuario: usuarioLogado ? usuarioLogado.nome : '',
+      responsavel: usuarioLogado ? usuarioLogado.nome : ''
+    };
+    google.script.run.withSuccessHandler(function(res) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Validade';
+      if (res && res.sucesso === false) {
+        window.toast(res.mensagem || 'Erro ao salvar validade.', 'er');
+      } else {
+        window.toast((res && res.mensagem) ? res.mensagem : 'Validade salva com sucesso!', 'ok');
+        document.getElementById('val-dt-venc').value = '';
+        document.getElementById('val-lote').value = '';
+        window.carregarValidades();
+      }
+    }).withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Validade';
+      window.toast('Erro ao salvar validade.', 'er');
+    }).salvarValidade(payload);
+  });
+  safeAddEvent('btn-save-qv', 'click', function() {
+    var idProd = document.getElementById('qv-prod-id').value;
+    var dtVencRaw = document.getElementById('qv-dt-venc').value;
+    var dtVenc = formatarDataBR(dtVencRaw);
+    var qtd = document.getElementById('qv-qtd').value;
+    var lote = document.getElementById('qv-lote').value;
+    if (!dtVenc) { window.toast('Informe a data de vencimento!', 'er'); return; }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    var prodObj = produtosContagem.find(function(p){ return norm(p.id) === norm(idProd); });
+    var nomeProd = prodObj ? prodObj.nome : document.getElementById('qv-prod-nome').textContent;
+    var payload = {
+      id: String(idProd).trim(),
+      idProduto: String(idProd).trim(),
+      produtoId: String(idProd).trim(),
+      nome: nomeProd,
+      nomeProduto: nomeProd,
+      codBarra: prodObj ? String(prodObj.codBarra || '').trim() : '',
+      dataVenc: dtVenc,
+      dataVencimento: dtVenc,
+      quantidade: Number(qtd) || 1,
+      qtd: Number(qtd) || 1,
+      lote: lote || '',
+      usuario: usuarioLogado ? usuarioLogado.nome : '',
+      responsavel: usuarioLogado ? usuarioLogado.nome : ''
+    };
+    google.script.run.withSuccessHandler(function(res) {
+      btn.disabled = false;
+      btn.textContent = 'Confirmar Validade';
+      if (res && res.sucesso === false) {
+        window.toast(res.mensagem || 'Erro ao salvar validade.', 'er');
+      } else {
+        window.toast((res && res.mensagem) ? res.mensagem : 'Validade salva com sucesso!', 'ok');
+        document.getElementById('modal-quick-validade').style.display = 'none';
+        window.carregarContagem();
+      }
+    }).withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Confirmar Validade';
+      window.toast('Erro ao salvar validade.', 'er');
+    }).salvarValidade(payload);
+  });
+  // SALVAR VENCIMENTO DO CLIENTE
+  safeAddEvent('btn-save-vc', 'click', function() {
+    var idCliente = document.getElementById('vc-cliente-id').value;
+    var dtVencRaw = document.getElementById('vc-dt-venc').value;
+    var dtVencAteRaw = document.getElementById('vc-dt-venc-ate').value;
+    var dtVenc = formatarDataBR(dtVencRaw);
+    var dtVencAte = formatarDataBR(dtVencAteRaw);
+    var obs = document.getElementById('vc-obs').value;
+    if (!dtVenc && !dtVencAte) { window.toast('Informe ao menos uma data de vencimento!', 'er'); return; }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    google.script.run.withSuccessHandler(function(res) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Vencimento';
+      window.toast(res ? res.mensagem : 'Vencimento salvo!', (res && res.sucesso !== false) ? 'ok' : 'er');
+      if (!res || res.sucesso !== false) {
+        document.getElementById('modal-venc-cliente-edit').style.display = 'none';
+        window.carregarVencimentosClientesPage();
+      }
+    }).withFailureHandler(function(err) {
+      btn.disabled = false;
+      btn.textContent = 'Salvar Vencimento';
+      window.toast('Erro ao salvar vencimento.', 'er');
+    }).salvarVencimentoCliente({
+      idCliente: idCliente,
+      dataVenc: dtVenc,
+      dataVencAte: dtVencAte,
+      observacao: obs,
+      usuario: usuarioLogado ? usuarioLogado.nome : ''
+    });
+  });
+  // SALVAR PERMISSÕES DO USUÁRIO
+  safeAddEvent('btn-save-prof-perms', 'click', function() {
+    var userId = document.getElementById('prof-user-id').value;
+    if (!userId) { window.toast('Usuário não selecionado!', 'er'); return; }
+    var perms = [];
+    if (document.getElementById('prof-p-contagem').checked) perms.push('contagem');
+    if (document.getElementById('prof-p-cadastrar').checked) perms.push('cadastrar');
+    if (document.getElementById('prof-p-relatorio').checked) perms.push('relatorio');
+    if (document.getElementById('prof-p-notif').checked) perms.push('notif');
+    if (document.getElementById('prof-p-validade').checked) perms.push('validade');
+    if (document.getElementById('prof-p-cartaz').checked) perms.push('cartaz');
+    if (document.getElementById('prof-p-notafiscal').checked) perms.push('notafiscal');
+    if (document.getElementById('prof-p-ordemcompra').checked) perms.push('ordemcompra');
+    if (document.getElementById('prof-p-gestao').checked) perms.push('gestao');
+    if (document.getElementById('prof-p-vencclientes').checked) perms.push('vencclientes');
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+    google.script.run
+      .withSuccessHandler(function(res) {
+        btn.disabled = false;
+        btn.textContent = 'Salvar Alterações de Permissões';
+        window.toast(res ? res.mensagem : 'Permissões atualizadas com sucesso!', res && res.sucesso ? 'ok' : 'er');
+        if (res && res.sucesso) {
+          document.getElementById('modal-perfil-user').style.display = 'none';
+          window.carregarUsuariosAdmin();
+        }
+      })
+      .withFailureHandler(function(err) {
+        btn.disabled = false;
+        btn.textContent = 'Salvar Alterações de Permissões';
+        window.toast('Erro ao salvar permissões.', 'er');
+      })
+      .salvarPermissoesUsuario(userId, perms, usuarioLogado ? usuarioLogado.usuario : '');
+  });
+  // OUTROS BINDINGS
+  safeAddEvent('btn-toggle-adm', 'click', function() {
+    var submenu = document.getElementById('adm-submenu'); var chevron = this.querySelector('.chevron');
+    if (submenu.style.display === 'flex') { submenu.style.display = 'none'; chevron.style.transform = 'rotate(0deg)'; } 
+    else { submenu.style.display = 'flex'; chevron.style.transform = 'rotate(180deg)'; }
+  });
+  safeAddEvent('btn-toggle-nf', 'click', function() {
+    var submenu = document.getElementById('nf-submenu'); var chevron = this.querySelector('.chevron');
+    if (submenu.style.display === 'flex') { submenu.style.display = 'none'; chevron.style.transform = 'rotate(0deg)'; } 
+    else { submenu.style.display = 'flex'; chevron.style.transform = 'rotate(180deg)'; }
+  });
+  safeAddEvent('btn-logout', 'click', function(){
+    usuarioLogado = null; document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = '';
+    document.getElementById('drawer-tools').style.display = 'none'; window.toast('Sessão encerrada.', 'ok'); window.nav('login');
+  });
+  safeAddEvent('btn-save-cont', 'click', function() {
+    var resp = document.getElementById('resp').value.trim();
+    if (!resp) { window.toast('Informe quem está realizando a contagem!', 'er'); return; }
+    var listaParaSalvar = [];
+    produtosContagem.forEach(function(p) {
+      if (contagensAtuais[p.id] !== undefined && contagensAtuais[p.id] > 0) {
+        listaParaSalvar.push({ id: p.id, nome: p.nome, categoria: p.categoria, estoqueIdeal: p.estoqueIdeal, qtdContada: contagensAtuais[p.id], codBarra: p.codBarra });
+      }
+    });
+    if (listaParaSalvar.length === 0) { window.toast('Nenhum item foi contado!', 'er'); return; }
+    var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
+    google.script.run.withSuccessHandler(function(res) {
+        btn.disabled = false; btn.textContent = 'Salvar Contagem';
+        if (res.sucesso) { window.toast(res.mensagem, 'ok'); window.exibirModalRelatorio(res.resumo); contagensAtuais = {}; limiteExibicao = 50; window.renderContagem(); } else { window.toast(res.mensagem, 'er'); }
+      }).withFailureHandler(function(err) { btn.disabled = false; btn.textContent = 'Salvar Contagem'; window.toast('Erro.', 'er'); }).salvarContagem(listaParaSalvar, resp);
+  });
+  safeAddEvent('btn-close-relatorio', 'click', function() { document.getElementById('modal-relatorio').style.display = 'none'; });
+  safeAddEvent('btn-close-add-item', 'click', function() { document.getElementById('modal-add-item').style.display = 'none'; });
+  safeAddEvent('btn-close-qv', 'click', function() { document.getElementById('modal-quick-validade').style.display = 'none'; });
+  safeAddEvent('btn-close-vc', 'click', function() { document.getElementById('modal-venc-cliente-edit').style.display = 'none'; });
+  safeAddEvent('btn-close-prof', 'click', function() { document.getElementById('modal-perfil-user').style.display = 'none'; });
+  safeAddEvent('btn-close-add-nf-modal', 'click', function() { document.getElementById('modal-add-nf-cliente').style.display = 'none'; });
+// FUNCTIONS CONTAGEM E CADASTRO
+window.carregarContagem = function() {
+  var loadEl = document.getElementById('load-contagem');
+  if (loadEl) loadEl.style.display = 'block';
+  document.getElementById('lista-contagem').innerHTML = '';
+  limiteExibicao = 50;
+  google.script.run
+    .withSuccessHandler(function(prods) {
+      produtosContagem = (prods || []).map(function(p) {
+        p._s = ((p.nome || '') + ' ' + (p.id || '') + ' ' + (p.codBarra || '')).toLowerCase();
+        p._c = (p.categoria || 'GERAL').toUpperCase();
+        return p;
+      });
+      if (loadEl) loadEl.style.display = 'none';
+      window.popularFiltroCategorias(produtosContagem);
+      window.renderContagem();
+      google.script.run
+        .withSuccessHandler(function(vencs) {
+          validadesData = vencs || [];
+          window.atualizarMapaValidades();
+          window.renderContagem();
+        })
+        .getValidades();
+    })
+    .getProdutos();
+};
+window.popularFiltroCategorias = function(prods) {
+  var select = document.getElementById('filter-cat');
+  var categorias = new Set();
+  prods.forEach(function(p) { if (p.categoria) categorias.add(p.categoria.toUpperCase()); });
+  var valorAtual = select.value;
+  var html = '<option value="TODAS">Todas as Categorias</option>';
+  categorias.forEach(function(cat) { html += '<option value="' + cat + '">' + cat + '</option>'; });
+  select.innerHTML = html;
+  if (valorAtual && Array.prototype.some.call(select.options, function(o){ return o.value === valorAtual; })) {
+    select.value = valorAtual;
+  }
+};
+window.gerarMetaHtml = function(p, qtd) {
+  var ideal = parseInt(p.estoqueIdeal) || 0;
+  var metaHtml = 'ID: ' + p.id;
+  if (p.codBarra && String(p.codBarra).trim() !== '') {
+    var cb = String(p.codBarra).trim();
+    if (cb.length >= 4) { metaHtml += ' | Cód: ' + cb.slice(0, -4) + '<span class="barcode-highlight">' + cb.slice(-4) + '</span>'; } else { metaHtml += ' | Cód: <span class="barcode-highlight">' + cb + '</span>'; }
+  }
+  metaHtml += ' | Ideal: ' + ideal;
+  
+  var pId = norm(p.id);
+  var pCod = norm(p.codBarra);
+  var vencMatch = mapaValidades['id_' + pId] || mapaValidades['cod_' + pCod];
+  if (vencMatch) {
+    metaHtml += ' | <span style="color:#fbbf24;font-weight:800;">📅 Venc: ' + vencMatch + '</span>';
+  }
+  if (contagensAtuais[p.id] !== undefined && contagensAtuais[p.id] > 0) {
+    var diff = qtd - ideal;
+    if (diff > 0) metaHtml += ' <span style="color:#fbbf24;font-weight:800;margin-left:4px">+' + diff + '</span>';
+    else if (diff < 0) metaHtml += ' <span style="color:#f87171;font-weight:800;margin-left:4px">' + diff + '</span>';
+    else metaHtml += ' <span style="color:#34d399;font-weight:800;margin-left:4px">✓ OK</span>';
+  }
+  return metaHtml;
+};
+window.renderContagem = function() {
+  var container = document.getElementById('lista-contagem');
+  var busca = (document.getElementById('search-input').value || '').toLowerCase().trim();
+  var catFiltro = document.getElementById('filter-cat').value;
+  if (!produtosContagem || produtosContagem.length === 0) { container.innerHTML = '<div class="card empty">Nenhum produto no Cache. Atualize a base.</div>'; return; }
+  
+  var filtrados = produtosContagem.filter(function(p) {
+    var matchBusca = !busca || p._s.indexOf(busca) > -1;
+    var matchCat = (catFiltro === 'TODAS') || (p._c === catFiltro);
+    return matchBusca && matchCat;
+  });
+  if (filtrados.length === 0) { container.innerHTML = '<div class="card empty">Nenhum produto corresponde aos filtros.</div>'; return; }
+  var exibidos = filtrados.slice(0, limiteExibicao);
+  var grupos = {};
+  exibidos.forEach(function(p) {
+    var cat = p._c || 'GERAL';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push(p);
+  });
+  var html = '';
+  Object.keys(grupos).forEach(function(catName) {
+    html += '<div class="card"><div class="card-title">' + catName + '</div>';
+    grupos[catName].forEach(function(p) {
+      var qtd = contagensAtuais[p.id] !== undefined ? contagensAtuais[p.id] : 0;
+      var imgHtml = (p.fotoUrl && p.fotoUrl !== 'NOT_FOUND') ? '<img src="' + p.fotoUrl + '" alt="foto">' : '📦';
+      var thumbDiv = '<div class="prod-thumb">' + imgHtml + '</div>';
+    html += '<div class="prod-item">' + thumbDiv +
+        '<div class="prod-info"><div class="prod-name">' + p.nome + '</div><div class="prod-meta" id="meta-' + p.id + '">' + window.gerarMetaHtml(p, qtd) + '</div></div>' +
+        '<div class="prod-counter">' +
+          '<button class="btn-qty" onclick="abrirModalValidadeDireta(\'' + p.id + '\')" title="Registrar Validade" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);width:34px;height:34px;font-size:14px;margin-right:4px;">📅</button>' +
+          '<button class="btn-qty" onclick="alterarQtd(\'' + p.id + '\', -1)">-</button>' +
+          '<input class="qty-input" id="qty-' + p.id + '" value="' + qtd + '" onchange="definirQtd(\'' + p.id + '\', this.value)" type="number" min="0">' +
+          '<button class="btn-qty" onclick="alterarQtd(\'' + p.id + '\', 1)">+</button>' +
+          '<button class="btn-qty" onclick="somarEmLote(\'' + p.id + '\')" title="Somar quantidade em lote" style="background:rgba(16,185,129,0.15);color:#10b981;font-size:13px;width:34px;margin-left:4px;">+📝</button>' +
+        '</div></div>';
+    });
+    html += '</div>';
+  });
+    
+  if (filtrados.length > limiteExibicao) html += '<button class="btn-more" id="btn-load-more">Carregar Mais (' + (filtrados.length - limiteExibicao) + ' restantes)</button>';
+  container.innerHTML = html;
+  var btnLoadMore = document.getElementById('btn-load-more');
+  if (btnLoadMore) btnLoadMore.addEventListener('click', function() { limiteExibicao += 50; window.renderContagem(); });
+  window.verificarBotaoSalvar();
+};
+window.abrirModalValidadeDireta = function(id) {
+  var p = produtosContagem.find(function(item){ return String(item.id) === String(id); });
+  if (!p) return;
+  document.getElementById('qv-prod-id').value = p.id;
+  document.getElementById('qv-prod-nome').textContent = p.nome;
+  document.getElementById('qv-dt-venc').value = '';
+  document.getElementById('qv-qtd').value = 1;
+  document.getElementById('qv-lote').value = '';
+  document.getElementById('modal-quick-validade').style.display = 'flex';
+};
+window.alterarQtd = function(id, delta) {
+  var q = contagensAtuais[id] !== undefined ? contagensAtuais[id] : 0;
+  q = Math.max(0, q + delta);
+  window.definirQtd(id, q);
+};
+window.definirQtd = function(id, val) {
+  var q = Math.max(0, parseInt(val) || 0);
+  contagensAtuais[id] = q;
+  var input = document.getElementById('qty-' + id);
+  if (input) input.value = q;
+  var p = produtosContagem.find(function(item){ return item.id === id; });
+  if (p) {
+    var meta = document.getElementById('meta-' + id);
+    if (meta) meta.innerHTML = window.gerarMetaHtml(p, q);
+  }
+  window.verificarBotaoSalvar();
+};
+window.verificarBotaoSalvar = function() {
+  var btn = document.getElementById('btn-save-cont');
+  if (!btn) return;
+  var temContagem = Object.keys(contagensAtuais).some(function(k){ return contagensAtuais[k] > 0; });
+  btn.disabled = !temContagem;
+};
+// ============================================
+// CADASTRO E EDIÇÃO DE PRODUTOS
+// ============================================
+window.carregarProdutos = function() {
+  var loadEl = document.getElementById('load-prod');
+  if (loadEl) loadEl.style.display = 'block';
+  limiteCadExibicao = 50;
+  google.script.run.withSuccessHandler(function(prods) {
+    prodsCadastrados = (prods || []).map(function(p) {
+      p._s = ((p.nome || '') + ' ' + (p.id || '') + ' ' + (p.codBarra || '')).toLowerCase();
+      return p;
+    });
+    if (loadEl) loadEl.style.display = 'none';
+    window.renderListaCadastrados();
+  }).getProdutos();
+};
+window.renderListaCadastrados = function() {
+  var container = document.getElementById('plist');
+  var busca = (document.getElementById('search-cad-input').value || '').toLowerCase().trim();
+  if (!prodsCadastrados || prodsCadastrados.length === 0) {
+    container.innerHTML = '<div class="card empty">Nenhum produto cadastrado.</div>';
+    return;
+  }
+  var filtrados = prodsCadastrados.filter(function(p) { return !busca || p._s.indexOf(busca) > -1; });
+  if (filtrados.length === 0) { container.innerHTML = '<div class="card empty">Nenhum produto localizado.</div>'; return; }
+  var exibidos = filtrados.slice(0, limiteCadExibicao);
+  var html = '';
+  exibidos.forEach(function(p) {
+    var cb = (p.codBarra && String(p.codBarra).trim() !== '') ? String(p.codBarra).trim() : 'Sem Cód.';
+    var imgHtml = (p.fotoUrl && p.fotoUrl !== 'NOT_FOUND') ? '<img src="' + p.fotoUrl + '" alt="foto">' : '📦';
+    html += '<div class="list-item">' +
+      '<div class="prod-thumb">' + imgHtml + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;font-weight:700;color:#fff;word-break:break-word;">' + p.nome + '</div>' +
+        '<div class="list-cat"><span class="list-tag">' + (p.categoria || 'GERAL') + '</span> ID: ' + p.id + ' | Cód: ' + cb + ' | Ideal: ' + p.estoqueIdeal + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;">' +
+        '<button class="btn-edit-item" onclick="window.editarProduto(\'' + p.id + '\')" title="Editar">✏️</button>' +
+        '<button class="del" onclick="window.excluirProduto(\'' + p.id + '\')" title="Excluir">✕</button>' +
+      '</div>' +
+    '</div>';
+  });
+  if (filtrados.length > limiteCadExibicao) {
+    html += '<button class="btn-more" id="btn-load-more-cad">Carregar Mais (' + (filtrados.length - limiteCadExibicao) + ' restantes)</button>';
+  }
+  container.innerHTML = html;
+  var btnMore = document.getElementById('btn-load-more-cad');
+  if (btnMore) btnMore.addEventListener('click', function() { limiteCadExibicao += 50; window.renderListaCadastrados(); });
+};
+window.consultarProdutoInternet = function() {
+  var codBarra = (document.getElementById('ncodbarra').value || '').trim().replace(/\D/g, '');
+  if (!codBarra) { window.toast('Informe o código de barras para pesquisar!', 'er'); return; }
+  window.toast('Buscando dados do produto na web...', 'ok');
+  fetch('https://world.openfoodfacts.org/api/v2/product/' + codBarra + '.json')
+    .then(function(res){ return res.json(); })
+    .then(function(json){
+      if (json && json.status === 1 && json.product) {
+        var prod = json.product;
+        var nome = prod.product_name_pt || prod.product_name || '';
+        if (nome) {
+          document.getElementById('nname').value = nome.toUpperCase();
+          if (prod.categories_tags && prod.categories_tags.length > 0) {
+            var cat = prod.categories_tags[0].replace('en:', '').replace('pt:', '').toUpperCase();
+            document.getElementById('ncat').value = cat;
+          }
+          window.toast('Produto localizado: ' + nome, 'ok');
+        } else {
+          window.toast('Produto encontrado, mas sem nome cadastrado.', 'w');
+        }
+      } else {
+        window.toast('Produto não localizado na base pública.', 'w');
+      }
+    })
+    .catch(function(){ window.toast('Erro ao buscar dados na web.', 'er'); });
+};
+safeAddEvent('btn-search-web', 'click', window.consultarProdutoInternet);
+safeAddEvent('btn-add', 'click', function() {
+  var id = (document.getElementById('nid').value || '').trim();
+  var nome = (document.getElementById('nname').value || '').trim();
+  var cat = (document.getElementById('ncat').value || '').trim();
+  var cb = (document.getElementById('ncodbarra').value || '').trim();
+  var ideal = parseInt(document.getElementById('neideal').value) || 0;
+  if (!id || !nome) { window.toast('Informe o ID e o Nome do produto!', 'er'); return; }
+  var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
+  google.script.run
+    .withSuccessHandler(function(res) {
+      btn.disabled = false; btn.textContent = modoEdicao ? 'Salvar Edição' : 'Adicionar';
+      window.toast(res ? res.mensagem : 'Salvo com sucesso!', (res && res.sucesso !== false) ? 'ok' : 'er');
+      if (!res || res.sucesso !== false) {
+        document.getElementById('nid').value = '';
+        document.getElementById('nname').value = '';
+        document.getElementById('ncat').value = '';
+        document.getElementById('ncodbarra').value = '';
+        document.getElementById('neideal').value = '';
+        document.getElementById('nid').disabled = false;
+        modoEdicao = false;
+        document.getElementById('form-prod-title').textContent = 'NOVO PRODUTO';
+        document.getElementById('btn-cancel-edit').style.display = 'none';
+        window.carregarProdutos();
+      }
+    })
+    .withFailureHandler(function(err) {
+      btn.disabled = false; btn.textContent = modoEdicao ? 'Salvar Edição' : 'Adicionar';
+      window.toast('Erro ao salvar produto.', 'er');
+    })
+    .salvarProduto(id, nome, cat, ideal, cb, modoEdicao, usuarioLogado ? usuarioLogado.nome : '');
+});
+window.editarProduto = function(id) {
+  var p = prodsCadastrados.find(function(item){ return String(item.id) === String(id); });
+  if (!p) return;
+  document.getElementById('nid').value = p.id;
+  document.getElementById('nid').disabled = true;
+  document.getElementById('nname').value = p.nome;
+  document.getElementById('ncat').value = p.categoria || '';
+  document.getElementById('ncodbarra').value = p.codBarra || '';
+  document.getElementById('neideal').value = p.estoqueIdeal || 0;
+  modoEdicao = true;
+  document.getElementById('form-prod-title').textContent = 'EDITAR PRODUTO (ID: ' + p.id + ')';
+  document.getElementById('btn-add').textContent = 'Salvar Edição';
+  document.getElementById('btn-cancel-edit').style.display = 'inline-block';
+  window.scrollTo(0,0);
+};
+safeAddEvent('btn-cancel-edit', 'click', function() {
+  document.getElementById('nid').value = '';
+  document.getElementById('nid').disabled = false;
+  document.getElementById('nname').value = '';
+  document.getElementById('ncat').value = '';
+  document.getElementById('ncodbarra').value = '';
+  document.getElementById('neideal').value = '';
+  modoEdicao = false;
+  document.getElementById('form-prod-title').textContent = 'NOVO PRODUTO';
+  document.getElementById('btn-add').textContent = 'Adicionar';
+  this.style.display = 'none';
+});
+window.excluirProduto = function(id) {
+  if (!confirm('Tem certeza que deseja excluir o produto ID: ' + id + '?')) return;
+  window.toast('Removendo produto...', 'ok');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      window.toast('Produto removido!', 'ok');
+      window.carregarProdutos();
+    })
+    .withFailureHandler(function() {
+      window.toast('Erro ao remover produto.', 'er');
+    })
+    .removerProduto(id, usuarioLogado ? usuarioLogado.nome : '');
+};
+// ============================================
+// DASHBOARD BI E HISTÓRICO
+// ============================================
+window.carregarRelatorio = function() {
+  var loadEl = document.getElementById('load-rel');
+  if (loadEl) loadEl.style.display = 'block';
+  document.getElementById('bi-container').style.display = 'none';
+  google.script.run.withSuccessHandler(function(data) {
+    rawBiData = data;
+    if (loadEl) loadEl.style.display = 'none';
+    document.getElementById('bi-container').style.display = 'grid';
+    window.popularFiltrosBi(data);
+    window.renderDashboardBi();
+  }).getBIFullData();
+};
+window.popularFiltrosBi = function(data) {
+  var selCat = document.getElementById('bi-filter-cat');
+  var selResp = document.getElementById('bi-filter-resp');
+  var cats = new Set(), resps = new Set();
+  (data.produtos || []).forEach(function(p){ if(p.categoria) cats.add(p.categoria.toUpperCase()); });
+  (data.historico || []).forEach(function(h){ if(h.responsavel) resps.add(h.responsavel); });
+  var htmlCat = '<option value="TODAS">Todas as Categorias</option>';
+  cats.forEach(function(c){ htmlCat += '<option value="' + c + '">' + c + '</option>'; });
+  var catAtual = selCat.value;
+  selCat.innerHTML = htmlCat;
+  if (catAtual && Array.prototype.some.call(selCat.options, function(o){ return o.value === catAtual; })) {
+    selCat.value = catAtual;
+  }
+  var htmlResp = '<option value="TODOS">Todos os Usuários</option>';
+  resps.forEach(function(r){ htmlResp += '<option value="' + r + '">' + r + '</option>'; });
+  var respAtual = selResp.value;
+  selResp.innerHTML = htmlResp;
+  if (respAtual && Array.prototype.some.call(selResp.options, function(o){ return o.value === respAtual; })) {
+    selResp.value = respAtual;
+  }
+};
+safeAddEvent('bi-filter-ano', 'change', function(){ window.renderDashboardBi(); });
+safeAddEvent('bi-filter-cat', 'change', function(){ window.renderDashboardBi(); });
+safeAddEvent('bi-filter-resp', 'change', function(){ window.renderDashboardBi(); });
+window.renderDashboardBi = function() {
+  if (!rawBiData || !rawBiData.historico) return;
+  var fAno = document.getElementById('bi-filter-ano').value;
+  var fCat = document.getElementById('bi-filter-cat').value;
+  var fResp = document.getElementById('bi-filter-resp').value;
+  var filtrados = rawBiData.historico.filter(function(item) {
+    var matchAno = (fAno === 'TODOS') || (item.dataHora && item.dataHora.indexOf(fAno) > -1);
+    var matchCat = (fCat === 'TODAS') || (item.categoria && item.categoria.toUpperCase() === fCat);
+    var matchResp = (fResp === 'TODOS') || (item.responsavel === fResp);
+    return matchAno && matchCat && matchResp;
+  });
+  var totContado = 0, totOk = 0, totDiff = 0;
+  var diffsPorCat = {};
+  filtrados.forEach(function(item) {
+    totContado += (item.qtdContada || 0);
+    if (item.diferenca === 0) totOk++;
+    else totDiff++;
+    var c = item.categoria || 'GERAL';
+    if (!diffsPorCat[c]) diffsPorCat[c] = 0;
+    if (item.diferenca !== 0) diffsPorCat[c] += Math.abs(item.diferenca);
+  });
+  var totalValidos = totOk + totDiff;
+  var acuracia = totalValidos > 0 ? Math.round((totOk / totalValidos) * 100) : 100;
+  document.getElementById('bi-kpi-tot-contado').textContent = totContado;
+  document.getElementById('bi-kpi-tot-ok').textContent = totOk;
+  document.getElementById('bi-kpi-tot-diff').textContent = totDiff;
+  document.getElementById('bi-kpi-acuracia').textContent = acuracia + '%';
+  // DOUGHNUT CHART - DIVERGÊNCIAS
+  var ctxCat = document.getElementById('chart-cat');
+  if (ctxCat) {
+    if (chartCatInstance) chartCatInstance.destroy();
+    var labelsCat = Object.keys(diffsPorCat);
+    var dataCat = Object.values(diffsPorCat);
+    chartCatInstance = new Chart(ctxCat, {
+      type: 'doughnut',
+      data: {
+        labels: labelsCat.length > 0 ? labelsCat : ['Sem Divergências'],
+        datasets: [{
+          data: dataCat.length > 0 ? dataCat : [1],
+          backgroundColor: ['#f87171', '#fbbf24', '#60a5fa', '#a78bfa', '#34d399', '#f472b6']
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 10 } } } } }
+    });
+  }
+  // LINE CHART - TENDÊNCIA
+  var ctxTrend = document.getElementById('chart-trend');
+  if (ctxTrend) {
+    if (chartTrendInstance) chartTrendInstance.destroy();
+    var agrupadoData = {};
+    filtrados.forEach(function(item) {
+      var dt = item.dataHora ? item.dataHora.split(' ')[0] : 'Desconhecido';
+      if (!agrupadoData[dt]) agrupadoData[dt] = 0;
+      agrupadoData[dt] += (item.qtdContada || 0);
+    });
+    chartTrendInstance = new Chart(ctxTrend, {
+      type: 'line',
+      data: {
+        labels: Object.keys(agrupadoData),
+        datasets: [{
+          label: 'Qtd Contada',
+          data: Object.values(agrupadoData),
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16,185,129,0.1)',
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        },
+        plugins: { legend: { display: false } }
+      }
+    });
+  }
+};
+window.carregarHistorico = function() {
+  var loadEl = document.getElementById('load-historico');
+  if (loadEl) loadEl.style.display = 'block';
+  document.getElementById('historico-list').innerHTML = '';
+  google.script.run.withSuccessHandler(function(grupos) {
+    historicoSalvoData = grupos || [];
+    if (loadEl) loadEl.style.display = 'none';
+    var container = document.getElementById('historico-list');
+    if (!historicoSalvoData || historicoSalvoData.length === 0) {
+      container.innerHTML = '<div class="card empty">Nenum relatório salvo no histórico.</div>';
+      return;
+    }
+    var html = '';
+    historicoSalvoData.forEach(function(g, idx) {
+      html += '<div class="card card-clickable" onclick="window.exibirModalRelatorioIndex(' + idx + ')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<div style="font-size:14px;font-weight:800;color:#fff;">📅 ' + g.dataHora + '</div>' +
+          '<span class="badge-status b-ok">Resp: ' + g.responsavel + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#94a3b8;display:flex;gap:12px;margin-top:6px;">' +
+          '<span>Total: <strong>' + g.totalItens + '</strong></span>' +
+          '<span style="color:#f87171">Falta: <strong>' + g.itensFalta + '</strong></span>' +
+          '<span style="color:#fbbf24">Sobra: <strong>' + g.itensSobra + '</strong></span>' +
+          '<span style="color:#34d399">OK: <strong>' + g.itensOk + '</strong></span>' +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }).getHistoricoAgrupado();
+};
+window.exibirModalRelatorioIndex = function(idx) {
+  if (historicoSalvoData && historicoSalvoData[idx]) {
+    window.exibirModalRelatorio(historicoSalvoData[idx]);
+  }
+};
+window.exibirModalRelatorio = function(resumo) {
+  if (!resumo) return;
+  relatorioAtivoAdicao = resumo;
+  document.getElementById('rel-title').textContent = 'Relatório de ' + resumo.dataHora;
+  document.getElementById('rel-sub').textContent = 'Responsável: ' + resumo.responsavel;
+  document.getElementById('rel-tot-itens').textContent = resumo.totalItens || 0;
+  document.getElementById('rel-tot-falta').textContent = resumo.itensFalta || 0;
+  document.getElementById('rel-tot-sobra').textContent = resumo.itensSobra || 0;
+  document.getElementById('rel-tot-ok').textContent = resumo.itensOk || 0;
+  var tbody = document.getElementById('rel-tbody');
+  var html = '';
+  (resumo.itens || []).forEach(function(item) {
+    var diff = item.diferenca;
+    var statusClass = 'b-ok', statusTxt = 'OK';
+    if (diff < 0) { statusClass = 'b-falta'; statusTxt = 'FALTA (' + diff + ')'; }
+    else if (diff > 0) { statusClass = 'b-sobra'; statusTxt = 'SOBRA (+' + diff + ')'; }
+    html += '<tr>' +
+      '<td style="font-weight:700;color:#fff;">' + item.nome + '</td>' +
+      '<td>' + item.estoqueIdeal + '</td>' +
+      '<td>' + item.qtdContada + '</td>' +
+      '<td>' + (diff > 0 ? '+' + diff : diff) + '</td>' +
+      '<td><span class="badge-status ' + statusClass + '">' + statusTxt + '</span></td>' +
+    '</tr>';
+  });
+  tbody.innerHTML = html;
+  var modal = document.getElementById('modal-relatorio');
+  if (modal) {
+    var btnExtraContainer = modal.querySelector('.extra-rel-buttons');
+    if (!btnExtraContainer) {
+      btnExtraContainer = document.createElement('div');
+      btnExtraContainer.className = 'extra-rel-buttons row no-print';
+      btnExtraContainer.style.marginTop = '12px';
+      btnExtraContainer.innerHTML = '<button class="btn" onclick="window.abrirModalAdicionarItem()" style="flex:1;background:linear-gradient(135deg,#3b82f6,#1d4ed8);font-size:12px">➕ Adicionar Item</button>' +
+        '<button class="btn" onclick="window.recalcularRelatorioOriginal()" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6d28d9);font-size:12px">🔄 Recalcular com Cache</button>';
+      modal.querySelector('.modal-cam-content').appendChild(btnExtraContainer);
+    }
+    modal.style.display = 'flex';
+  }
+};
+safeAddEvent('btn-print-relatorio', 'click', function() {
+  document.body.classList.add('printing-relatorio');
+  var limpar = function() { document.body.classList.remove('printing-relatorio'); window.removeEventListener('afterprint', limpar); };
+  window.addEventListener('afterprint', limpar);
+  setTimeout(function() { window.print(); }, 60);
+});
+window.abrirModalAdicionarItem = function() {
+  if (!relatorioAtivoAdicao) return;
+  document.getElementById('add-item-sub').textContent = 'Injetando no relatório de ' + relatorioAtivoAdicao.dataHora;
+  document.getElementById('modal-add-item').style.display = 'flex';
+  window.renderListaAdicaoItem();
+};
+window.renderListaAdicaoItem = function() {
+  var container = document.getElementById('lista-add-item');
+  var busca = (document.getElementById('search-add-item').value || '').toLowerCase().trim();
+  if (!produtosContagem || produtosContagem.length === 0) {
+    container.innerHTML = '<div class="card empty">Carregue a contagem primeiro.</div>';
+    return;
+  }
+  var filtrados = produtosContagem.filter(function(p) { return !busca || p._s.indexOf(busca) > -1; });
+  var html = '';
+  filtrados.slice(0, 30).forEach(function(p) {
+    html += '<div class="prod-item">' +
+      '<div class="prod-info"><div class="prod-name">' + p.nome + '</div><div class="prod-meta">ID: ' + p.id + ' | Ideal: ' + p.estoqueIdeal + '</div></div>' +
+      '<div class="prod-counter">' +
+        '<input class="qty-input" id="add-qtd-' + p.id + '" value="1" type="number" min="1" style="width:50px;">' +
+        '<button class="btn" onclick="window.injetarItemRelatorio(\'' + p.id + '\')" style="padding:6px 10px;font-size:12px;">Adicionar</button>' +
+      '</div></div>';
+  });
+  container.innerHTML = html;
+};
+window.injetarItemRelatorio = function(id) {
+  if (!relatorioAtivoAdicao) return;
+  var qtdInput = document.getElementById('add-qtd-' + id);
+  var qtd = parseInt(qtdInput.value) || 1;
+  window.toast('Adicionando item ao relatório...', 'ok');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      window.toast(res ? res.mensagem : 'Item adicionado!', (res && res.sucesso) ? 'ok' : 'er');
+      if (res && res.sucesso) {
+        document.getElementById('modal-add-item').style.display = 'none';
+        document.getElementById('modal-relatorio').style.display = 'none';
+        window.carregarHistorico();
+      }
+    })
+    .withFailureHandler(function() { window.toast('Erro ao injetar item.', 'er'); })
+    .adicionarItemAoRelatorio(relatorioAtivoAdicao.dataHora, id, qtd, relatorioAtivoAdicao.responsavel);
+};
+window.recalcularRelatorioOriginal = function() {
+  if (!relatorioAtivoAdicao) return;
+  if (!confirm('Deseja recalcular a diferença do relatório ' + relatorioAtivoAdicao.dataHora + ' usando os saldos ideais do Cache atual?')) return;
+  window.toast('Recalculando valores...', 'ok');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      window.toast(res ? res.mensagem : 'Relatório recalculado!', (res && res.sucesso) ? 'ok' : 'er');
+      if (res && res.sucesso) {
+        document.getElementById('modal-relatorio').style.display = 'none';
+        window.carregarHistorico();
+      }
+    })
+    .withFailureHandler(function() { window.toast('Erro ao recalcular.', 'er'); })
+    .recalcularRelatorio(relatorioAtivoAdicao.dataHora);
+};
+// ============================================
+// VALIDADES E NOTIFICAÇÕES
+// ============================================
+window.carregarValidades = function() {
+  var loadEl = document.getElementById('load-validades');
+  if (loadEl) loadEl.style.display = 'block';
+  google.script.run.withSuccessHandler(function(list) {
+    validadesData = list || [];
+    window.atualizarMapaValidades();
+    if (loadEl) loadEl.style.display = 'none';
+    if (produtosContagem && produtosContagem.length > 0) {
+      window.popularSelectValidades();
+    } else {
+      google.script.run.withSuccessHandler(function(prods) {
+        produtosContagem = (prods || []).map(function(p){ p._s = ((p.nome||'')+' '+(p.id||'')+' '+(p.codBarra||'')).toLowerCase(); return p; });
+        window.popularSelectValidades();
+      }).getProdutos();
+    }
+    window.renderListaValidades();
+  }).getValidades();
+};
+window.popularSelectValidades = function() {
+  var selCat = document.getElementById('val-filter-cat');
+  var selProd = document.getElementById('val-select-prod');
+  var busca = (document.getElementById('val-search-input').value || '').toLowerCase().trim();
+  var catSet = new Set();
+  (produtosContagem || []).forEach(function(p){ if(p.categoria) catSet.add(p.categoria.toUpperCase()); });
+  var valorAtual = selCat.value;
+  var htmlCat = '<option value="TODAS">Todas as Categorias</option>';
+  catSet.forEach(function(c){ htmlCat += '<option value="' + c + '">' + c + '</option>'; });
+  selCat.innerHTML = htmlCat;
+  if (valorAtual && Array.prototype.some.call(selCat.options, function(o){ return o.value === valorAtual; })) {
+    selCat.value = valorAtual;
+  }
+  var catSel = selCat.value;
+  var filtrados = (produtosContagem || []).filter(function(p) {
+    var matchBusca = !busca || p._s.indexOf(busca) > -1;
+    var matchCat = (catSel === 'TODAS') || (p.categoria && p.categoria.toUpperCase() === catSel);
+    return matchBusca && matchCat;
+  });
+  var htmlProd = '<option value="" disabled selected>Selecione um Produto (' + filtrados.length + ')...</option>';
+  filtrados.slice(0, 100).forEach(function(p) {
+    htmlProd += '<option value="' + p.id + '">' + p.nome + ' (ID: ' + p.id + ')</option>';
+  });
+  selProd.innerHTML = htmlProd;
+};
+window.renderListaValidades = function() {
+  var container = document.getElementById('lista-validades');
+  if (!validadesData || validadesData.length === 0) {
+    container.innerHTML = '<div class="card empty">Nenhuma validade registrada.</div>';
+    return;
+  }
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+  var html = '';
+  validadesData.forEach(function(v) {
+    var parts = (v.dataVenc || '').split('/');
+    var badgeClass = 'b-ok', statusTxt = 'Em Dia';
+    if (parts.length === 3) {
+      var dtVal = new Date(parts[2], parts[1] - 1, parts[0]);
+      var diffDias = Math.ceil((dtVal - hoje) / (1000 * 60 * 60 * 24));
+      if (diffDias < 0) { badgeClass = 'b-falta'; statusTxt = 'VENCIDO (' + Math.abs(diffDias) + ' dias)'; }
+      else if (diffDias <= 7) { badgeClass = 'b-sobra'; statusTxt = 'PRÓXIMO (' + diffDias + ' dias)'; }
+      else { badgeClass = 'b-ok'; statusTxt = 'OK (' + diffDias + ' dias)'; }
+    }
+    html += '<div class="list-item">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:13px;font-weight:700;color:#fff;">' + v.nome + '</div>' +
+        '<div class="list-cat">Vencimento: <strong>' + v.dataVenc + '</strong> | Qtd: ' + v.quantidade + (v.lote ? ' | Lote: ' + v.lote : '') + '</div>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;">' +
+        '<span class="badge-status ' + badgeClass + '">' + statusTxt + '</span>' +
+        '<button class="del" onclick="window.excluirValidade(' + v.row + ')" title="Excluir">✕</button>' +
+      '</div>' +
+    '</div>';
+  });
+  container.innerHTML = html;
+};
+window.excluirValidade = function(row) {
+  if (!confirm('Deseja remover este registro de validade?')) return;
+  window.toast('Removendo registro...', 'ok');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      window.toast(res ? res.mensagem : 'Removido!', 'ok');
+      window.carregarValidades();
+    })
+    .withFailureHandler(function() { window.toast('Erro ao remover.', 'er'); })
+    .removerValidade(row);
+};
+window.carregarNotificacoes = function() {
+  var loadEl = document.getElementById('load-notif');
+  if (loadEl) loadEl.style.display = 'block';
+  document.getElementById('notif-list').innerHTML = '';
+  google.script.run.withSuccessHandler(function(vencs) {
+    validadesData = vencs || [];
+    window.atualizarMapaValidades();
+    if (loadEl) loadEl.style.display = 'none';
+    var container = document.getElementById('notif-list');
+    var hoje = new Date(); hoje.setHours(0,0,0,0);
+    var notifs = [];
+    (validadesData || []).forEach(function(v) {
+      var parts = (v.dataVenc || '').split('/');
+      if (parts.length === 3) {
+        var dtVal = new Date(parts[2], parts[1] - 1, parts[0]);
+        var diffDias = Math.ceil((dtVal - hoje) / (1000 * 60 * 60 * 24));
+        if (diffDias < 0) {
+          notifs.push({ tipo: 'notif-d', titulo: 'PRODUTO VENCIDO', desc: v.nome + ' venceu em ' + v.dataVenc + ' (Qtd: ' + v.quantidade + ')' });
+        } else if (diffDias <= 7) {
+          notifs.push({ tipo: 'notif-w', titulo: 'VENCIMENTO PRÓXIMO', desc: v.nome + ' vence em ' + diffDias + ' dias (' + v.dataVenc + ')' });
+        }
+      }
+    });
+    if (notifs.length === 0) {
+      container.innerHTML = '<div class="card empty">Nenhuma notificação urgente de vencimento no momento.</div>';
+      return;
+    }
+    var html = '';
+    notifs.forEach(function(n) {
+      html += '<div class="notif ' + n.tipo + '">' +
+        '<div style="font-weight:800;margin-bottom:2px;">' + n.titulo + '</div>' +
+        '<div style="color:#cbd5e1;">' + n.desc + '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }).getValidades();
+};
+// ============================================
+// CARTAZ DE PROMOÇÃO
+// ============================================
+window.prepararTelaCartaz = function() {
+  if (produtosContagem && produtosContagem.length > 0) {
+    window.popularSelectCartaz();
+  } else {
+    google.script.run.withSuccessHandler(function(prods) {
+      produtosContagem = (prods || []).map(function(p){ p._s = ((p.nome||'')+' '+(p.id||'')+' '+(p.codBarra||'')).toLowerCase(); return p; });
+      window.popularSelectCartaz();
+    }).getProdutos();
+  }
+};
+window.popularSelectCartaz = function() {
+  var selCat = document.getElementById('cartaz-filter-cat');
+  var selProd = document.getElementById('cartaz-select-prod');
+  var busca = (document.getElementById('cartaz-search').value || '').toLowerCase().trim();
+  var catSet = new Set();
+  (produtosContagem || []).forEach(function(p){ if(p.categoria) catSet.add(p.categoria.toUpperCase()); });
+  var valorAtual = selCat.value;
+  var htmlCat = '<option value="TODAS">Todas as Categorias</option>';
+  catSet.forEach(function(c){ htmlCat += '<option value="' + c + '">' + c + '</option>'; });
+  selCat.innerHTML = htmlCat;
+  if (valorAtual && Array.prototype.some.call(selCat.options, function(o){ return o.value === valorAtual; })) {
+    selCat.value = valorAtual;
+  }
+  var catSel = selCat.value;
+  var filtrados = (produtosContagem || []).filter(function(p) {
+    var matchBusca = !busca || p._s.indexOf(busca) > -1;
+    var matchCat = (catSel === 'TODAS') || (p.categoria && p.categoria.toUpperCase() === catSel);
+    return matchBusca && matchCat;
+  });
+  var htmlProd = '<option value="" disabled selected>Selecione um Produto (' + filtrados.length + ')...</option>';
+  filtrados.slice(0, 100).forEach(function(p) {
+    htmlProd += '<option value="' + p.id + '">' + p.nome + ' (ID: ' + p.id + ')</option>';
+  });
+  selProd.innerHTML = htmlProd;
+};
+window.atualizarPreviewCartaz = function() {
+  var nome = document.getElementById('cartaz-prod-name').value || 'NOME DO PRODUTO';
+  var preco = document.getElementById('cartaz-prod-price').value || '0,00';
+  document.getElementById('prev-prod-title').textContent = nome.toUpperCase();
+  var pClean = preco.replace('R$', '').trim();
+  var parts = pClean.split(',');
+  var intPart = parts[0] || '0';
+  var decPart = parts.length > 1 ? ',' + parts[1] : ',00';
+  document.getElementById('prev-price-int').textContent = intPart;
+  document.getElementById('prev-price-dec').textContent = decPart;
+};
+safeAddEvent('btn-print-cartaz', 'click', function() {
+    var nome = document.getElementById('prev-prod-title').textContent;
+    var intPart = document.getElementById('prev-price-int').textContent;
+    var decPart = document.getElementById('prev-price-dec').textContent;
+    
+    var janela = window.open('', '_blank');
+    if (!janela) { window.toast('Desative o bloqueador de popups para imprimir.', 'er'); return; }
+    
+    janela.document.write('<html><head><title>Cartaz Promocional - ' + nome + '</title>');
+    janela.document.write('<style>');
+    janela.document.write('@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Oswald:wght@700&display=swap");');
+    
+    janela.document.write('* { margin:0; padding:0; box-sizing:border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }');
+    janela.document.write('body, html { width: 100%; height: 100%; background:#fff; font-family:"Montserrat", sans-serif; }');
+    
+    // Configuração para ocupar a folha toda
+    janela.document.write('.poster-page { width: 100%; height: 100%; display:flex; flex-direction:column; overflow:hidden; position:relative; background: #ffffff; }');
+    
+    // Banner superior cinza com o triângulo invertido
+    janela.document.write('.poster-header-banner { background-color:#e5e7eb !important; width: 100%; padding: 80px 20px 100px; text-align:center; clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%); -webkit-clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%); }');
+    
+    // Texto PROMOÇÃO
+    janela.document.write('.poster-header-title { font-size:110px; font-weight:900; letter-spacing:2px; color:#000000 !important; text-transform:uppercase; text-shadow: 4px 4px 10px rgba(0,0,0,0.15); }');
+    
+    // Conteúdo central (Nome e Preço)
+    janela.document.write('.poster-body-content { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 80px; padding: 40px; text-align:center; }');
+    
+    // Nome do Produto
+    janela.document.write('.poster-prod-title { font-size:85px; font-weight:700; color:#000000 !important; text-transform:uppercase; line-height:1.1; word-break:break-word; max-width:95%; font-family:"Oswald", sans-serif; }');
+    
+    // Container do Preço
+    janela.document.write('.poster-price-container { display:flex; align-items:baseline; justify-content:center; font-weight:900; color:#000000 !important; }');
+    janela.document.write('.poster-price-symbol { font-size:90px; margin-right:15px; font-weight:900; }');
+    janela.document.write('.poster-price-big { font-size:450px; line-height:0.75; font-weight:900; letter-spacing:-15px; }');
+    janela.document.write('.poster-price-cents { font-size:160px; font-weight:900; margin-left:10px; }');
+    
+    // Remove margens de impressão
+    janela.document.write('@media print { @page { size: A4 portrait; margin: 0; } body { padding:0; margin:0; } }');
+    janela.document.write('</style></head><body>');
+    
+    janela.document.write('<div class="poster-page">');
+    janela.document.write('  <div class="poster-header-banner"><div class="poster-header-title">PROMOÇÃO</div></div>');
+    janela.document.write('  <div class="poster-body-content">');
+    janela.document.write('    <div class="poster-prod-title">' + nome + '</div>');
+    janela.document.write('    <div class="poster-price-container">');
+    janela.document.write('      <span class="poster-price-symbol">R$</span>');
+    janela.document.write('      <span class="poster-price-big">' + intPart + '</span>');
+    janela.document.write('      <span class="poster-price-cents">' + decPart + '</span>');
+    janela.document.write('    </div>');
+    janela.document.write('  </div>');
+    janela.document.write('</div>');
+    
+    janela.document.write('</body></html>');
+    janela.document.close();
+    janela.focus();
+    
+    setTimeout(function() { janela.print(); janela.close(); }, 800);
+  });
+// ============================================
+// NOTA FISCAL E FATURAMENTO (PLANILHA EXTERNA)
+// ============================================
+window.carregarNotasFiscais = function() {
+  var loadEl = document.getElementById('load-nf');
+  if (loadEl) loadEl.style.display = 'block';
+  google.script.run.withSuccessHandler(function(res) {
+    if (loadEl) loadEl.style.display = 'none';
+    if (res && res.sucesso) {
+      nfDadosList = res.dadosNF || [];
+      fatDadosObj = res.dadosFat || { fichario: [], email: [], caixaResponsavel: [], whatsapp: [], entrega: [], avisos: [] };
+      window.popularFiltrosNF();
+      window.renderAbaSelecionadaNF();
+    } else {
+      window.toast(res ? res.mensagem : 'Erro ao carregar dados externos.', 'er');
+    }
+  }).getDadosNotaFiscalExterna();
+};
+window.popularFiltrosNF = function() {
+  var selCat = document.getElementById('nf-filter-cat');
+  var html = '<option value="TODAS">Todas as Categorias / Seções</option>';
+  if (abaNFAtiva === 'nf') {
+    html += '<option value="DIA">Frequência: DIA</option><option value="JUNTAR">Frequência: JUNTAR</option><option value="MENSAL">Frequência: MENSAL</option>';
+  } else {
+    html += '<option value="FICHARIO">📁 Fichário</option><option value="EMAIL">✉️ E-mail</option><option value="CAIXA">🧑‍💼 Caixa - Responsável</option><option value="WHATSAPP">💬 WhatsApp</option><option value="ENTREGA">🚚 Entrega</option><option value="AVISOS">⚠️ Avisos</option>';
+  }
+  selCat.innerHTML = html;
+};
+window.alternarAbaNF = function(aba) {
+  abaNFAtiva = aba;
+  document.getElementById('tab-btn-nf').className = 'tab-btn' + (aba === 'nf' ? ' active' : '');
+  document.getElementById('tab-btn-fat').className = 'tab-btn' + (aba === 'fat' ? ' active' : '');
+  document.getElementById('view-tab-nf').style.display = aba === 'nf' ? 'block' : 'none';
+  document.getElementById('view-tab-fat').style.display = aba === 'fat' ? 'block' : 'none';
+  window.popularFiltrosNF();
+  window.renderAbaSelecionadaNF();
+};
+window.renderAbaSelecionadaNF = function() {
+  var busca = (document.getElementById('nf-search-input').value || '').toLowerCase().trim();
+  var fCat = document.getElementById('nf-filter-cat').value;
+  if (abaNFAtiva === 'nf') {
+    var container = document.getElementById('lista-nf');
+    var filtrados = (nfDadosList || []).filter(function(item) {
+      var matchBusca = !busca || (item.cliente || '').toLowerCase().indexOf(busca) > -1 || (item.contato || '').toLowerCase().indexOf(busca) > -1;
+      var matchCat = (fCat === 'TODAS') || (item.frequencia === fCat);
+      return matchBusca && matchCat;
+    });
+    if (filtrados.length === 0) { container.innerHTML = '<div class="card empty">Nenhum registro localizado no Controle NF.</div>'; return; }
+    var html = '';
+    filtrados.forEach(function(item) {
+      html += '<div class="list-item">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:14px;font-weight:800;color:#fff;">' + item.cliente + '</div>' +
+          '<div class="list-cat">Frequência: <strong>' + item.frequencia + '</strong> | Canal: ' + item.canal + ' | Contato: ' + (item.contato || 'Não informado') + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  } else {
+    var containerFat = document.getElementById('lista-fat');
+    var htmlFat = '';
+    function renderSecao(titulo, lista, icone) {
+      var mFiltro = (fCat === 'TODAS') || (fCat.indexOf(titulo.toUpperCase()) > -1);
+      if (!mFiltro) return '';
+      var fItems = (lista || []).filter(function(x) {
+        var str = typeof x === 'object' ? (x.cliente + ' ' + x.responsavel) : String(x);
+        return !busca || str.toLowerCase().indexOf(busca) > -1;
+      });
+      if (fItems.length === 0) return '';
+      var secHtml = '<div class="card"><div class="card-title">' + icone + ' ' + titulo + ' (' + fItems.length + ')</div>';
+      fItems.forEach(function(it) {
+        if (typeof it === 'object') {
+          secHtml += '<div class="list-item"><div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#fff;">' + it.cliente + '</div><div class="list-cat" style="color:#fbbf24">Responsável: ' + it.responsavel + '</div></div></div>';
+        } else {
+          secHtml += '<div class="list-item"><div style="font-size:13px;font-weight:700;color:#fff;">' + it + '</div></div>';
+        }
+      });
+      secHtml += '</div>';
+      return secHtml;
+    }
+    htmlFat += renderSecao('FICHARIO', fatDadosObj.fichario, '📁');
+    htmlFat += renderSecao('EMAIL', fatDadosObj.email, '✉️');
+    htmlFat += renderSecao('CAIXA', fatDadosObj.caixaResponsavel, '🧑‍💼');
+    htmlFat += renderSecao('WHATSAPP', fatDadosObj.whatsapp, '💬');
+    htmlFat += renderSecao('ENTREGA', fatDadosObj.entrega, '🚚');
+    htmlFat += renderSecao('AVISOS', fatDadosObj.avisos, '⚠️');
+    containerFat.innerHTML = htmlFat || '<div class="card empty">Nenhum registro localizado no Faturamento.</div>';
+  }
+};
+safeAddEvent('btn-open-add-nf-modal', 'click', function() {
+  document.getElementById('modal-add-nf-cliente').style.display = 'flex';
+});
+safeAddEvent('add-nf-tipo', 'change', function() {
+  var t = this.value;
+  document.getElementById('form-group-nf').style.display = t === 'NF' ? 'block' : 'none';
+  document.getElementById('form-group-fat').style.display = t === 'FAT' ? 'block' : 'none';
+});
+safeAddEvent('add-fat-cat', 'change', function() {
+  document.getElementById('group-fat-resp').style.display = this.value === 'CAIXA' ? 'block' : 'none';
+});
+safeAddEvent('btn-save-novo-cliente-nf', 'click', function() {
+  var tipo = document.getElementById('add-nf-tipo').value;
+  var payload = { tipo: tipo };
+  if (tipo === 'NF') {
+    payload.cliente = document.getElementById('add-nf-nome').value.trim();
+    payload.frequencia = document.getElementById('add-nf-freq').value;
+    payload.canal = document.getElementById('add-nf-canal').value;
+    payload.contato = document.getElementById('add-nf-contato').value.trim();
+    if (!payload.cliente) { window.toast('Informe o nome do produtor/cliente!', 'er'); return; }
+  } else {
+    payload.categoria = document.getElementById('add-fat-cat').value;
+    payload.cliente = document.getElementById('add-fat-nome').value.trim();
+    payload.responsavel = document.getElementById('add-fat-resp').value.trim();
+    if (!payload.cliente) { window.toast('Informe o nome do cliente ou o texto do aviso!', 'er'); return; }
+  }
+  var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
+  google.script.run.withSuccessHandler(function(res) {
+    btn.disabled = false; btn.textContent = 'Salvar na Planilha Externa';
+    window.toast(res ? res.mensagem : 'Salvo!', (res && res.sucesso) ? 'ok' : 'er');
+    if (res && res.sucesso) {
+      document.getElementById('modal-add-nf-cliente').style.display = 'none';
+      window.carregarNotasFiscais();
+    }
+  }).salvarClienteExterno(payload);
+});
+// ============================================
+// VENCIMENTO DE CLIENTES (LÊ SOMENTE "Relatório Clientes")
+// ============================================
+window.carregarVencimentosClientesPage = function() {
+  var loadEl = document.getElementById('load-venc-cli');
+  if (loadEl) loadEl.style.display = 'block';
+  google.script.run.withSuccessHandler(function(lista) {
+    vencClientesList = lista || [];
+    if (loadEl) loadEl.style.display = 'none';
+    limiteVencCliExibicao = 50;
+    window.renderListaVencClientes();
+  }).getVencimentosClientes();
+};
+window.abrirModalVencCliente = function(id) {
+  var cli = (vencClientesList || []).find(function(c){ return String(c.id) === String(id); });
+  if (!cli) return;
+  document.getElementById('vc-cliente-id').value = cli.id;
+  document.getElementById('vc-cliente-nome').textContent = cli.nome;
+  document.getElementById('vc-dt-venc').value = dateBRtoIso(cli.dataVenc);
+  document.getElementById('vc-dt-venc-ate').value = dateBRtoIso(cli.dataVencAte);
+  document.getElementById('vc-obs').value = cli.observacao || '';
+  document.getElementById('modal-venc-cliente-edit').style.display = 'flex';
+};
+window.renderListaVencClientes = function() {
+  var container = document.getElementById('lista-venc-cliente');
+  if (!container) return;
+  var busca = (document.getElementById('venc-cli-search').value || '').toLowerCase().trim();
+  var filtroCat = document.getElementById('venc-cli-filter-cat').value;
+  var dtDe = document.getElementById('venc-cli-dt-de').value;
+  var dtAte = document.getElementById('venc-cli-dt-ate').value;
+  var hoje = new Date();
+  hoje.setHours(0,0,0,0);
+  var filtrados = (vencClientesList || []).filter(function(item) {
+    var matchBusca = !busca ||
+      (item.nome || '').toLowerCase().indexOf(busca) > -1 ||
+      (item.observacao || '').toLowerCase().indexOf(busca) > -1;
+    var status = 'PENDENTE';
+    var dtRefStr = item.dataVencAte || item.dataVenc;
+    if (dtRefStr) {
+      var parts = dtRefStr.split('/');
+      if (parts.length === 3) {
+        var dtObj = new Date(parts[2], parts[1] - 1, parts[0]);
+        var diffDias = Math.ceil((dtObj - hoje) / (1000 * 60 * 60 * 24));
+        if (diffDias < 0) status = 'VENCIDO';
+        else if (diffDias === 0) status = 'DIAADIA';
+        else if (diffDias <= 7) status = 'QUASE';
+        else status = 'PENDENTE';
+      }
+    }
+    var matchCat = (filtroCat === 'TODAS') || (status === filtroCat);
+    var matchData = true;
+    var cStart = null, cEnd = null;
+    if (item.dataVenc) {
+      var p1 = item.dataVenc.split('/');
+      if (p1.length === 3) cStart = new Date(p1[2], p1[1] - 1, p1[0]);
+    }
+    if (item.dataVencAte) {
+      var p2 = item.dataVencAte.split('/');
+      if (p2.length === 3) cEnd = new Date(p2[2], p2[1] - 1, p2[0]);
+    }
+    if (!cStart) cStart = cEnd;
+    if (!cEnd) cEnd = cStart;
+    if (cStart && cEnd) {
+      if (dtDe) {
+        var pDe = dtDe.split('-');
+        var fStart = new Date(pDe[0], pDe[1] - 1, pDe[2]);
+        if (cEnd < fStart) matchData = false;
+      }
+      if (dtAte && matchData) {
+        var pAte = dtAte.split('-');
+        var fEnd = new Date(pAte[0], pAte[1] - 1, pAte[2]);
+        if (cStart > fEnd) matchData = false;
+      }
+    } else if (dtDe || dtAte) {
+      matchData = false;
+    }
+    return matchBusca && matchCat && matchData;
+  });
+  if (filtrados.length === 0) {
+    container.innerHTML = '<div class="card empty">Nenhum vencimento de cliente localizado.</div>';
+    return;
+  }
+  var exibidos = filtrados.slice(0, limiteVencCliExibicao);
+  var html = '';
+  exibidos.forEach(function(item) {
+    var badgeClass = 'b-ok';
+    var statusTxt = 'Dia a Dia / Hoje';
+    var dtRefStr = item.dataVencAte || item.dataVenc;
+    if (dtRefStr) {
+      var parts = dtRefStr.split('/');
+      var dtObj = new Date(parts[2], parts[1] - 1, parts[0]);
+      var diffDias = Math.ceil((dtObj - hoje) / (1000 * 60 * 60 * 24));
+      if (diffDias < 0) {
+        badgeClass = 'b-falta';
+        statusTxt = 'VENCIDO (' + Math.abs(diffDias) + ' dias)';
+      } else if (diffDias === 0) {
+        badgeClass = 'b-ok';
+        statusTxt = 'VENCE HOJE';
+      } else if (diffDias <= 7) {
+        badgeClass = 'b-sobra';
+        statusTxt = 'QUASE VENCENDO (' + diffDias + ' dias)';
+      } else {
+        badgeClass = 'b-ok';
+        statusTxt = 'PENDENTE (' + diffDias + ' dias)';
+      }
+    } else {
+      badgeClass = 'b-sobra';
+      statusTxt = 'SEM DATA DEFINIDA';
+    }
+    var strVenc = 'Não informado';
+    if (item.dataVenc && item.dataVencAte) {
+      strVenc = item.dataVenc + ' <span style="color:#fbbf24;font-weight:800;">até</span> ' + item.dataVencAte;
+    } else if (item.dataVenc) {
+      strVenc = item.dataVenc;
+    } else if (item.dataVencAte) {
+      strVenc = 'Até ' + item.dataVencAte;
+    }
+    html += '<div class="card" style="margin-bottom:10px;padding:14px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+        '<span class="badge-status ' + badgeClass + '">' + statusTxt + '</span>' +
+        '<div style="display:flex; gap: 8px;">' +
+          '<button class="btn-qty" onclick="window.open(\'detalhes.html?id=\' + encodeURIComponent(\'' + item.id + '\') + \'&nome=\' + encodeURIComponent(\'' + item.nome + '\'), \'_blank\')" title="Ver Informações Completas" style="background:rgba(59,130,246,0.15);color:#60a5fa;border-color:rgba(59,130,246,0.3);width:34px;height:34px;font-size:14px;">ℹ️</button>' +
+          '<button class="btn-qty" onclick="abrirModalVencCliente(\'' + item.id + '\')" title="Definir Data de Vencimento" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);width:34px;height:34px;font-size:14px;">📅</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:14px;font-weight:800;color:#fff;margin-bottom:4px;">' + item.nome + '</div>' +
+      '<div style="font-size:12px;color:#cbd5e1;margin-bottom:4px;">Vencimento: <strong>' + strVenc + '</strong></div>' +
+      (item.observacao ? '<div style="font-size:11px;color:#38bdf8;background:rgba(56,189,248,0.08);padding:8px;border-radius:8px;border-left:3px solid #38bdf8;"><strong>Obs:</strong> ' + item.observacao + '</div>' : '') +
+    '</div>';
+  });
+  if (filtrados.length > limiteVencCliExibicao) {
+    html += '<button class="btn-more" id="btn-load-more-venc-cli">Carregar Mais (' + (filtrados.length - limiteVencCliExibicao) + ' restantes)</button>';
+  }
+  container.innerHTML = html;
+  var btnLoadMore = document.getElementById('btn-load-more-venc-cli');
+  if (btnLoadMore) {
+    btnLoadMore.addEventListener('click', function() {
+      limiteVencCliExibicao += 50;
+      window.renderListaVencClientes();
+    });
+  }
+};
+// ============================================
+// ADMINISTRAÇÃO E GESTÃO
+// ============================================
+window.carregarSolicitacoesPendentes = function() {
+  var loadEl = document.getElementById('load-admin');
+  if (loadEl) loadEl.style.display = 'block';
+  google.script.run.withSuccessHandler(function(lista) {
+    if (loadEl) loadEl.style.display = 'none';
+    var container = document.getElementById('admin-pending-list');
+    if (!lista || lista.length === 0) {
+      container.innerHTML = '<div class="card empty">Nenhuma solicitação pendente no momento.</div>';
+      return;
+    }
+    var html = '';
+    lista.forEach(function(item) {
+      html += '<div class="card">' +
+        '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px">' + item.nome + '</div>' +
+        '<div style="font-size:12px;color:#cbd5e1;margin-bottom:8px">Função: <strong>' + item.funcao + '</strong> | Local: <strong>' + item.local + '</strong></div>' +
+        '<div style="font-size:12px;color:#cbd5e1;margin-bottom:12px">Tel: <strong>' + item.telefone + '</strong> | Solicitado: ' + item.dataHora + '</div>' +
+        '<div class="row">' +
+          '<input class="input" id="adm-u-' + item.id + '" placeholder="Usuário (ex: marlon)" style="flex:1">' +
+          '<input class="input" id="adm-p-' + item.id + '" placeholder="Senha" style="flex:1">' +
+        '</div>' +
+        '<button class="btn-more" onclick="window.preencherCredenciais(\'' + item.id + '\', \'' + String(item.nome).replace(/'/g, "\\'") + '\', true)" style="margin-top:8px;background:rgba(56,189,248,0.15);border-color:#38bdf8;color:#38bdf8">🎲 Gerar usuário e senha aleatórios</button>' +
+        '<div class="card-title" style="margin-top:6px;margin-bottom:4px">PERMISSÕES DE ACESSO</div>' +
+        '<div class="checkbox-group">' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-cont-' + item.id + '" checked> Contagem</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-cad-' + item.id + '" checked> Cadastrar</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-rel-' + item.id + '" checked> Relatórios</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-not-' + item.id + '" checked> Notificações</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-val-' + item.id + '" checked> Validades</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-car-' + item.id + '"> Cartaz Promoção</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-nf-' + item.id + '"> Notas Fiscais</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-oc-' + item.id + '"> Ordem de Compra</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-ges-' + item.id + '"> Gestão de Controle</label>' +
+          '<label class="checkbox-item"><input type="checkbox" id="p-venc-' + item.id + '"> Venc. Clientes</label>' +
+        '</div>' +
+        '<button class="btn-save" onclick="window.aprovarSolicitacaoUser(\'' + item.id + '\')" style="margin-top:10px">Aprovar e Criar Acesso</button>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+    // Preenche automaticamente usuário/senha aleatórios em cada solicitação
+    lista.forEach(function(item) { window.preencherCredenciais(item.id, item.nome, false); });
+  }).getSolicitacoesPendentes();
+};
+window.aprovarSolicitacaoUser = function(id) {
+  var u = document.getElementById('adm-u-' + id).value.trim();
+  var p = document.getElementById('adm-p-' + id).value.trim();
+  if (!u || !p) { window.toast('Defina usuário e senha para aprovar!', 'er'); return; }
+  var perms = [];
+  if (document.getElementById('p-cont-' + id).checked) perms.push('contagem');
+  if (document.getElementById('p-cad-' + id).checked) perms.push('cadastrar');
+  if (document.getElementById('p-rel-' + id).checked) perms.push('relatorio');
+  if (document.getElementById('p-not-' + id).checked) perms.push('notif');
+  if (document.getElementById('p-val-' + id).checked) perms.push('validade');
+  if (document.getElementById('p-car-' + id).checked) perms.push('cartaz');
+  if (document.getElementById('p-nf-' + id).checked) perms.push('notafiscal');
+  if (document.getElementById('p-oc-' + id).checked) perms.push('ordemcompra');
+  if (document.getElementById('p-ges-' + id).checked) perms.push('gestao');
+  if (document.getElementById('p-venc-' + id).checked) perms.push('vencclientes');
+  window.toast('Aprovando solicitação...', 'ok');
+  google.script.run
+    .withSuccessHandler(function(res) {
+      window.toast(res ? res.mensagem : 'Usuário aprovado!', (res && res.sucesso) ? 'ok' : 'er');
+      window.carregarSolicitacoesPendentes();
+    })
+    .aprovarSolicitacao(id, u, p, perms);
+};
+window.carregarUsuariosAdmin = function() {
+  var loadEl = document.getElementById('load-users');
+  if (loadEl) loadEl.style.display = 'block';
+  google.script.run.withSuccessHandler(function(lista) {
+    adminUsuariosList = lista || [];
+    if (loadEl) loadEl.style.display = 'none';
+    var container = document.getElementById('admin-user-list');
+    if (!adminUsuariosList || adminUsuariosList.length === 0) {
+      container.innerHTML = '<div class="card empty">Nenhum usuário cadastrado.</div>';
+      return;
+    }
+    var html = '';
+    adminUsuariosList.forEach(function(u) {
+      var badgeClass = u.status === 'APROVADO' ? 'b-ok' : 'b-falta';
+      html += '<div class="card" style="padding:14px;margin-bottom:10px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+          '<div style="font-size:14px;font-weight:800;color:#fff;">' + u.nome + ' (@' + u.usuario + ')</div>' +
+          '<span class="badge-status ' + badgeClass + '">' + u.status + '</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:#cbd5e1;margin-bottom:8px;">Função: ' + u.funcao + ' | Local: ' + u.local + '</div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">' +
+          '<button class="btn" onclick="window.abrirModalPerfil(\'' + u.id + '\')" style="padding:6px 10px;font-size:11px;background:linear-gradient(135deg,#3b82f6,#1d4ed8)">⚙️ Permissões</button>' +
+          '<button class="btn" onclick="window.alterarStatusAdmin(\'' + u.id + '\', \'' + (u.status === 'APROVADO' ? 'INATIVO' : 'APROVADO') + '\')" style="padding:6px 10px;font-size:11px;background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)">' + (u.status === 'APROVADO' ? '🚫 Desativar' : '✅ Ativar') + '</button>' +
+          '<button class="btn" onclick="window.resetarSenhaAdmin(\'' + u.id + '\')" style="padding:6px 10px;font-size:11px;background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.3)">🔑 Redefinir Senha</button>' +
+        '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }).getUsuariosAtivos();
+};
+window.abrirModalPerfil = function(id) {
+  var u = adminUsuariosList.find(function(item){ return String(item.id) === String(id); });
+  if (!u) return;
+  document.getElementById('prof-user-id').value = u.id;
+  document.getElementById('prof-nome').textContent = u.nome;
+  document.getElementById('prof-login').textContent = '@' + u.usuario;
+  document.getElementById('prof-avatar').textContent = u.nome ? u.nome.charAt(0).toUpperCase() : 'U';
+  document.getElementById('prof-id').textContent = u.id;
+  document.getElementById('prof-funcao').textContent = u.funcao || 'Não informada';
+  document.getElementById('prof-local').textContent = u.local || 'Geral';
+  document.getElementById('prof-telefone').textContent = u.telefone || 'Não informado';
+  var perms = (u.permissoes || '').split(',');
+  document.getElementById('prof-p-contagem').checked = perms.indexOf('contagem') > -1;
+  document.getElementById('prof-p-cadastrar').checked = perms.indexOf('cadastrar') > -1;
+  document.getElementById('prof-p-relatorio').checked = perms.indexOf('relatorio') > -1;
+  document.getElementById('prof-p-notif').checked = perms.indexOf('notif') > -1;
+  document.getElementById('prof-p-validade').checked = perms.indexOf('validade') > -1;
+  document.getElementById('prof-p-cartaz').checked = perms.indexOf('cartaz') > -1;
+  document.getElementById('prof-p-notafiscal').checked = perms.indexOf('notafiscal') > -1;
+  document.getElementById('prof-p-ordemcompra').checked = perms.indexOf('ordemcompra') > -1;
+  document.getElementById('prof-p-gestao').checked = perms.indexOf('gestao') > -1;
+  document.getElementById('prof-p-vencclientes').checked = perms.indexOf('vencclientes') > -1;
+  document.getElementById('modal-perfil-user').style.display = 'flex';
+};
+window.alterarStatusAdmin = function(id, novoStatus) {
+  if (!confirm('Deseja mudar o status deste usuário para ' + novoStatus + '?')) return;
+  window.toast('Atualizando status...', 'ok');
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast(res ? res.mensagem : 'Status atualizado!', 'ok');
+    window.carregarUsuariosAdmin();
+  }).alterarStatusUsuario(id, novoStatus, usuarioLogado ? usuarioLogado.usuario : '');
+};
+window.resetarSenhaAdmin = function(id) {
+  var novaSenha = prompt('Digite a nova senha para este usuário:');
+  if (!novaSenha || !novaSenha.trim()) return;
+  window.toast('Redefinindo senha...', 'ok');
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast(res ? res.mensagem : 'Senha redefinida!', 'ok');
+  }).resetarSenhaUsuario(id, novaSenha.trim(), usuarioLogado ? usuarioLogado.usuario : '');
+};
+window.carregarLogsAdmin = function() {
+  var loadEl = document.getElementById('load-logs');
+  if (loadEl) loadEl.style.display = 'block';
+  google.script.run.withSuccessHandler(function(logs) {
+    if (loadEl) loadEl.style.display = 'none';
+    var container = document.getElementById('admin-logs-list');
+    if (!logs || logs.length === 0) {
+      container.innerHTML = '<div class="card empty">Nenhum log registrado no sistema.</div>';
+      return;
+    }
+    var html = '';
+    logs.forEach(function(l) {
+      html += '<div class="log-item">' +
+        '<div class="log-date">' + l.data + ' — ' + l.usuario + '</div>' +
+        '<div style="font-weight:800;color:#fff;margin-bottom:2px;">' + l.acao + '</div>' +
+        '<div class="log-detail">' + l.detalhes + '</div>' +
+      '</div>';
+    });
+    container.innerHTML = html;
+  }).getLogsAuditoria();
+};
+safeAddEvent('btn-sync-fotos', 'click', function() {
+  if (!confirm('Deseja sincronizar as fotos dos produtos com a base pública da internet agora?')) return;
+  window.toast('Iniciando sincronização de fotos...', 'ok');
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast(res ? res.mensagem : 'Fotos sincronizadas!', (res && res.sucesso) ? 'ok' : 'er');
+  }).sincronizarFotosEmLote();
+});
+</script>
+</body>
+</html>

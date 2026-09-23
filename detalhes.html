@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detalhes do Cliente</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0b0d14; color: #f1f5f9; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 16px; margin-bottom: 20px; }
+  .title { font-size: 20px; font-weight: 800; color: #38bdf8; }
+  .info-row { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.04); background: rgba(0,0,0,0.2); margin-bottom: 6px; border-radius: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .info-label { font-size: 10px; color: #94a3b8; font-weight: 800; text-transform: uppercase; }
+  .info-value { font-size: 15px; font-weight: 600; color: #fff; }
+  .loading { text-align: center; color: #94a3b8; font-size: 14px; margin: 40px 0; }
+  .btn-fechar { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 8px 16px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="title" id="nome-cliente">Carregando Cliente...</div>
+    <button class="btn-fechar" onclick="window.close()">Fechar</button>
+  </div>
+  <div id="loading" class="loading">Buscando informações na planilha... aguarde.</div>
+  <div id="dados-container"></div>
+</div>
+
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const clienteId = urlParams.get('id') || urlParams.get('nome');
+  const clienteNome = urlParams.get('nome');
+  
+  if (clienteNome) document.getElementById('nome-cliente').textContent = clienteNome;
+
+  const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxurVVSboEKdrVrSG8rFzLpJT5Ms5a8jIr3USSEfMaguBrr0K1j3UAW0xuVOOWHCOvM/exec";
+
+  fetch(GOOGLE_WEB_APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'getDetalhesCliente', args: [clienteId] })
+  })
+  .then(res => res.json())
+  .then(res => {
+    document.getElementById('loading').style.display = 'none';
+    const container = document.getElementById('dados-container');
+    
+  if (res.sucesso && res.dados) {
+      const cli = res.dados;
+      container.innerHTML = `
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+          
+          <!-- CABEÇALHO -->
+          <div style="background: linear-gradient(135deg, #1e293b, #0f172a); padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; gap: 16px;">
+            <div style="width: 60px; height: 60px; background: rgba(59, 130, 246, 0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 28px;">
+              🏢
+            </div>
+            <div>
+              <div style="font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 0.5px;">${cli.nome}</div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">📅 Cliente desde: <strong>${cli.dataCadastro || 'Não informado'}</strong></div>
+            </div>
+          </div>
+
+          <!-- CORPO DA FICHA -->
+          <div style="padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px;">
+            
+            <!-- IDENTIFICAÇÃO (CNPJ + IE + PESSOA) -->
+            <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border-left: 3px solid #64748b;">
+              <div style="font-size: 11px; color: #94a3b8; font-weight: 800; letter-spacing: 1px; margin-bottom: 12px;">🪪 IDENTIFICAÇÃO</div>
+              <div style="font-size: 14px; color: #f1f5f9; line-height: 1.6;">
+                <span style="color:#cbd5e1">Tipo:</span> <strong>${cli.pessoa || '---'}</strong><br>
+                <span style="color:#cbd5e1">CNPJ:</span> <strong>${cli.cnpj || '---'}</strong><br>
+                <span style="color:#cbd5e1">I.E.:</span> <strong>${cli.ie || '---'}</strong>
+              </div>
+            </div>
+
+            <!-- CONTATO -->
+            <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border-left: 3px solid #3b82f6;">
+              <div style="font-size: 11px; color: #94a3b8; font-weight: 800; letter-spacing: 1px; margin-bottom: 12px;">📞 CONTATOS</div>
+              <div style="font-size: 14px; color: #f1f5f9; line-height: 1.6;">
+                <span style="color:#cbd5e1">Celular:</span> <strong>${cli.celular || '---'}</strong><br>
+                <span style="color:#cbd5e1">Fixo:</span> <strong>${cli.fone || '---'}</strong><br>
+                <span style="color:#cbd5e1">E-mail:</span> <strong style="word-break: break-all;">${cli.email || '---'}</strong>
+              </div>
+            </div>
+
+            <!-- FINANCEIRO -->
+            <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border-left: 3px solid #10b981;">
+              <div style="font-size: 11px; color: #94a3b8; font-weight: 800; letter-spacing: 1px; margin-bottom: 12px;">💰 FINANCEIRO</div>
+              <div style="font-size: 14px; color: #f1f5f9; line-height: 1.6;">
+                <span style="color:#cbd5e1">Limite Crédito:</span> <strong style="color:#10b981; font-size: 16px;">R$ ${cli.limite || '0,00'}</strong><br>
+                <span style="color:#cbd5e1">Prazo/Pgto:</span> <strong>${cli.tipoPgto || '---'}</strong>
+              </div>
+            </div>
+
+            <!-- ENDEREÇO -->
+            <div style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 12px; border-left: 3px solid #f59e0b; grid-column: 1 / -1;">
+              <div style="font-size: 11px; color: #94a3b8; font-weight: 800; letter-spacing: 1px; margin-bottom: 12px;">📍 ENDEREÇO COMPLETO</div>
+              <div style="font-size: 14px; color: #f1f5f9; line-height: 1.6;">
+                <strong>${cli.endereco || 'Endereço não informado'}</strong><br>
+                <span style="color:#cbd5e1">Bairro:</span> ${cli.bairro || '---'} &nbsp;|&nbsp; <span style="color:#cbd5e1">Cidade:</span> ${cli.cidade || '---'}<br>
+                <span style="color:#cbd5e1">CEP:</span> ${cli.cep || '---'}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <div style="padding: 24px; text-align: center; color: #ef4444; font-weight: bold; background: rgba(239, 68, 68, 0.1); border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.2);">
+          ⚠️ ${res.mensagem || 'Cliente não encontrado no Relatório Analítico.'}
+        </div>
+      `;
+    }
+  })
+  .catch(err => {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dados-container').innerHTML = `
+      <div style="padding: 24px; text-align: center; color: #ef4444; font-weight: bold; background: rgba(239, 68, 68, 0.1); border-radius: 16px;">
+        ❌ Erro na comunicação: ${err.message}
+      </div>
+    `;
+  });
+</script>
+</body>
+</html>

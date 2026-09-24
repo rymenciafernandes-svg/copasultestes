@@ -18,13 +18,13 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ============================================
-// PONTE DE COMUNICAÇÃO GITHUB -> GOOGLE SHEETS
+// CONEXÃO SUPABASE & GOOGLE SHEETS
 // ============================================
-// CONEXÃO SUPABASE
 const SUPABASE_URL = 'https://kfacrxovtiiqifpunqxc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_sMCWfr1XkJ8M73cZJYxi2A_kX4SK5Wg';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxurVVSboEKdrVrSG8rFzLpJT5Ms5a8jIr3USSEfMaguBrr0K1j3UAW0xuVOOWHCOvM/exec";
+
 if (typeof google === 'undefined' || !google.script || !google.script.run) {
   window.google = window.google || {};
   window.google.script = window.google.script || {};
@@ -321,16 +321,13 @@ select.input option { background: #0b0d14; color: #fff; }
 .b-falta { background: rgba(239,68,68,0.15); color: #f87171; }
 .b-sobra { background: rgba(245,158,11,0.15); color: #fbbf24; }
 .b-ok { background: rgba(16,185,129,0.15); color: #34d399; }
-/* ============================================
-   IMPRESSÃO (CARTAZ A4 + RELATÓRIO)
-   ============================================ */
+/* IMPRESSÃO */
 @media print {
   @page { size: A4 portrait; margin: 8mm; }
   html, body { background: #ffffff !important; }
   body * { visibility: hidden !important; }
   .no-print { display: none !important; }
 
-  /* ===== CARTAZ DE PROMOÇÃO (A4) ===== */
   body.printing-cartaz .poster-preview-box,
   body.printing-cartaz .poster-preview-box * { visibility: visible !important; }
   body.printing-cartaz .poster-preview-box {
@@ -345,8 +342,6 @@ select.input option { background: #0b0d14; color: #fff; }
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
 
-  /* ===== RELATÓRIO DE CONTAGEM (MULTI-PÁGINA) ===== */
-  /* Remove do layout tudo que não é o relatório (visibility:hidden ainda ocupa espaço) */
   body.printing-relatorio .app > *:not(#modal-relatorio) { display: none !important; }
   body.printing-relatorio .app { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
   body.printing-relatorio #modal-relatorio,
@@ -366,7 +361,6 @@ select.input option { background: #0b0d14; color: #fff; }
     overflow: visible !important; box-shadow: none !important;
     display: block !important;
   }
-  /* Permite que a tabela quebre entre páginas */
   body.printing-relatorio .rel-table { page-break-inside: auto; }
   body.printing-relatorio .rel-table thead { display: table-header-group; }
   body.printing-relatorio .rel-table tr { page-break-inside: avoid; page-break-after: auto; }
@@ -408,6 +402,7 @@ select.input option { background: #0b0d14; color: #fff; }
     </div>
   </div>
 </div>
+
 <!-- TELA SOLICITAÇÃO -->
 <div id="p-solicitar" class="page">
   <div class="page-header">
@@ -432,6 +427,7 @@ select.input option { background: #0b0d14; color: #fff; }
     </div>
   </div>
 </div>
+
 <!-- TELA INICIAL (HOME) -->
 <div id="p-home" class="page">
   <div class="top-left-bar">
@@ -454,6 +450,7 @@ select.input option { background: #0b0d14; color: #fff; }
     <button class="menu-btn b4" data-nav="notif" style="display:none">Dash de Notificacoes</button>
   </div>
 </div>
+
 <!-- TELA GERADOR DE CARTAZ DE PROMOÇÃO -->
 <div id="p-cartaz" class="page">
   <div class="page-header">
@@ -494,6 +491,7 @@ select.input option { background: #0b0d14; color: #fff; }
     </div>
   </div>
 </div>
+
 <!-- TELA CONTAGEM -->
 <div id="p-contagem" class="page">
   <div class="page-header">
@@ -524,6 +522,7 @@ select.input option { background: #0b0d14; color: #fff; }
     <button class="btn-save" id="btn-save-cont" disabled>Salvar Contagem</button>
   </div>
 </div>
+
 <!-- TELA CADASTRO -->
 <div id="p-cadastrar" class="page">
   <div class="page-header">
@@ -567,6 +566,7 @@ select.input option { background: #0b0d14; color: #fff; }
     </div>
   </div>
 </div>
+
 <!-- TELA DASHBOARD BI -->
 <div id="p-relatorio" class="page">
   <div class="page-header">
@@ -599,6 +599,7 @@ select.input option { background: #0b0d14; color: #fff; }
     </div>
   </div>
 </div>
+
 <!-- TELA HISTÓRICO DE RELATÓRIOS -->
 <div id="p-historico" class="page">
   <div class="page-header">
@@ -611,6 +612,7 @@ select.input option { background: #0b0d14; color: #fff; }
     <div id="historico-list"></div>
   </div>
 </div>
+
 <!-- TELA MÓDULO: VALIDADES -->
 <div id="p-validade" class="page">
   <div class="page-header">
@@ -651,6 +653,7 @@ select.input option { background: #0b0d14; color: #fff; }
     </div>
   </div>
 </div>
+
 <!-- TELA CONTROLE DE NOTA FISCAL E CLIENTES FATURAMENTO -->
 <div id="p-notafiscal" class="page">
   <div class="page-header">
@@ -676,6 +679,7 @@ select.input option { background: #0b0d14; color: #fff; }
     <div id="view-tab-fat" style="display:none"><div id="lista-fat"></div></div>
   </div>
 </div>
+
 <!-- TELA MÓDULO INDEPENDENTE: VENCIMENTO DE CLIENTES -->
 <div id="p-venc-clientes" class="page">
   <div class="page-header">
@@ -713,6 +717,7 @@ select.input option { background: #0b0d14; color: #fff; }
     <div id="lista-venc-cliente"></div>
   </div>
 </div>
+
 <!-- TELAS EXCLUSIVAS DE ADM -->
 <div id="p-admin-users" class="page">
   <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Gestão de Usuários</div></div>
@@ -726,12 +731,14 @@ select.input option { background: #0b0d14; color: #fff; }
   <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Aprovação de Acessos</div></div>
   <div class="page-body"><div id="load-admin" class="loading"><div class="spin"></div>Buscando solicitações...</div><div id="admin-pending-list"></div></div>
 </div>
+
 <!-- TELA NOTIFICAÇÕES -->
 <div id="p-notif" class="page">
   <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Notificacoes</div></div>
   <div class="page-body"><div id="load-notif" class="loading"><div class="spin"></div>Analisando estoque...</div><div id="notif-list"></div></div>
 </div>
-<!-- MODAL SCANNER AO VIVO COM MIRA LASER E ZOOM -->
+
+<!-- MODAL SCANNER AO VIVO -->
 <div class="modal-cam" id="modal-scanner-live">
   <div class="modal-cam-content" style="max-width:480px; padding:20px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
@@ -749,6 +756,7 @@ select.input option { background: #0b0d14; color: #fff; }
     <button class="btn-more" id="btn-switch-photo-mode" style="margin-top:8px;">📷 Ou Tirar Foto da Galeria</button>
   </div>
 </div>
+
 <!-- MODAIS AUXILIARES -->
 <div class="modal-cam" id="modal-relatorio">
   <div class="modal-cam-content" style="max-width:560px;text-align:left">
@@ -934,6 +942,7 @@ select.input option { background: #0b0d14; color: #fff; }
 <div id="reader" style="display:none;"></div>
 <div class="toast" id="toast"></div>
 </div> <!-- FECHA DIV .app -->
+
 <!-- Painel Lateral / Drawer -->
 <div class="drawer-overlay" id="drawer-tools">
   <div class="drawer-content">
@@ -967,7 +976,7 @@ select.input option { background: #0b0d14; color: #fff; }
       </div>
     </div>
     <div class="tool-link" data-nav="venc-clientes" data-perm="vencclientes" style="border-color:rgba(245,158,11,0.3);color:#fbbf24;"><span>📅</span> Vencimento de Clientes</div>
-    <a href="disparos.html" data-perm="disparos" class="tool-link" style=border-color:rgba(16,185,129,0.3);color:#34d399;"><span>💬</span> Disparos em Lote (WhatsApp)</a>
+    <a href="disparos.html" data-perm="disparos" class="tool-link" style="border-color:rgba(16,185,129,0.3);color:#34d399;"><span>💬</span> Disparos em Lote (WhatsApp)</a>
     <a href="https://script.google.com/macros/s/AKfycbykpJP2ncPdJ9yjn0gbyAsbRB_j8yTclOMMIOBXfGwLmauuGgyn1lpKS4XbxRuAUL90/exec" target="_blank" class="tool-link" data-perm="ordemcompra"><span>🛒</span> Gerador de Ordem de Compra</a>
     <a href="https://script.google.com/macros/s/AKfycbwGujfCLrrYW1lOKif7KghTY7ltZDrJGyerwg-RCRmhdVo9zvPhF612OK616pG9wdd9/exec" target="_blank" class="tool-link" data-perm="gestao"><span>⚙️</span> Gestão de Controle</a>
     <div class="tool-link" data-nav="historico" data-perm="relatorio" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;"><span>📄</span> Histórico de Relatórios Salvos</div>
@@ -976,14 +985,13 @@ select.input option { background: #0b0d14; color: #fff; }
     <div class="tool-link" id="btn-logout" style="margin-top:auto;border-color:rgba(239,68,68,0.3);color:#f87171;cursor:pointer"><span>🚪</span> Sair da Conta</div>
   </div>
 </div>
+
 <script>
   var modoEdicao = false;
   
 window.enviarAlertaValidade = function() {
   if(!confirm("Deseja enviar o relatório de validades para os e-mails cadastrados agora?")) return;
-  
   alert("O relatório está sendo gerado e enviado. Isso pode levar alguns segundos...");
-  
   fetch(GOOGLE_WEB_APP_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -991,24 +999,19 @@ window.enviarAlertaValidade = function() {
   })
   .then(res => res.json())
   .then(res => {
-    if(res.sucesso) {
-      alert("✅ " + res.mensagem);
-    } else {
-      alert("❌ " + res.mensagem);
-    }
+    if(res.sucesso) alert("✅ " + res.mensagem);
+    else alert("❌ " + res.mensagem);
   }).catch(e => alert("Erro na comunicação."));
 };
+
 // FUNÇÃO PARA SOMAR ESTOQUE EM LOTE
 window.somarEmLote = function(id) {
   var inputEl = document.getElementById('qty-' + id);
   if (!inputEl) return;
-  
   var valorAtual = parseInt(inputEl.value) || 0;
   var valorAdicionar = prompt("Estoque atual: " + valorAtual + "\n\nQuanto você deseja ADICIONAR a este valor?");
-  
   if (valorAdicionar !== null && valorAdicionar.trim() !== "") {
     var numAdicionar = parseInt(valorAdicionar);
-    
     if (!isNaN(numAdicionar) && numAdicionar > 0) {
       var novoTotal = valorAtual + numAdicionar;
       window.definirQtd(id, novoTotal);
@@ -1017,6 +1020,7 @@ window.somarEmLote = function(id) {
     }
   }
 };
+
 // VARIAVEIS GLOBAIS
 var usuarioLogado = null;
 var activeTargetInputId = '';
@@ -1042,6 +1046,7 @@ var rawBiData = null;
 var html5QrCodeLive = null;
 var zoomAtual = 1;
 var mapaValidades = {};
+
 function safeAddEvent(id, evt, fn) {
   var el = document.getElementById(id);
   if (el) el.addEventListener(evt, fn);
@@ -1084,20 +1089,22 @@ window.atualizarVisibilidadeMenu = function() {
   document.querySelectorAll('.menu-btn').forEach(function(b){ b.style.display = 'none'; });
   document.querySelectorAll('[data-perm]').forEach(function(el){ el.style.display = 'none'; });
   if (usuarioLogado) {
+    var permsStr = typeof usuarioLogado.permissoes === 'string' ? usuarioLogado.permissoes : (usuarioLogado.permissoes || []).join(',');
     var isAdm = (usuarioLogado.funcao && usuarioLogado.funcao.toLowerCase().indexOf('gerente') !== -1 || 
                  usuarioLogado.funcao && usuarioLogado.funcao.toLowerCase().indexOf('administrador') !== -1 || 
-                 (usuarioLogado.permissoes && usuarioLogado.permissoes.indexOf('admin') !== -1) || 
+                 (permsStr.indexOf('admin') !== -1) || 
                  (usuarioLogado.usuario && usuarioLogado.usuario.toLowerCase() === 'admin'));
     if (isAdm) {
       document.querySelectorAll('.menu-btn').forEach(function(b){ b.style.display = 'flex'; });
       document.querySelectorAll('[data-perm]').forEach(function(el){ el.style.display = 'flex'; });
       var admSec = document.getElementById('admin-section');
       if (admSec) admSec.style.display = 'block';
-    } else if (usuarioLogado.permissoes) {
-      usuarioLogado.permissoes.forEach(function(p){
-        var btnModulo = document.querySelector('.menu-btn[data-nav="' + p + '"]');
+    } else if (permsStr) {
+      var pList = permsStr.split(',');
+      pList.forEach(function(p){
+        var btnModulo = document.querySelector('.menu-btn[data-nav="' + p.trim() + '"]');
         if(btnModulo) btnModulo.style.display = 'flex';
-        document.querySelectorAll('[data-perm="' + p + '"]').forEach(function(el){
+        document.querySelectorAll('[data-perm="' + p.trim() + '"]').forEach(function(el){
           el.style.display = 'flex';
         });
       });
@@ -1139,7 +1146,6 @@ window.gerarCodigoAleatorio = function(prefixo) {
   var num = Math.floor(1000 + Math.random() * 9000);
   return letra + num;
 };
-// Gera usuário e senha aleatórios para aprovação de acesso
 window.gerarCredenciaisAcesso = function(nome) {
   var base = String(nome || '').trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -1152,7 +1158,6 @@ window.gerarCredenciaisAcesso = function(nome) {
   for (var i = 0; i < 6; i++) senha += chars.charAt(Math.floor(Math.random() * chars.length));
   return { usuario: usuario, senha: senha };
 };
-// Preenche (ou regenera) usuário/senha de uma solicitação pendente
 window.preencherCredenciais = function(id, nome, regenerar) {
   var uEl = document.getElementById('adm-u-' + id);
   var pEl = document.getElementById('adm-p-' + id);
@@ -1163,17 +1168,15 @@ window.preencherCredenciais = function(id, nome, regenerar) {
     pEl.value = cred.senha;
   }
 };
+
 // SCANNER AO VIVO
 window.abrirScannerAoVivo = function(targetInputId, callbackOnScan) {
   activeTargetInputId = targetInputId;
   activeScanCallback = callbackOnScan;
   zoomAtual = 1;
-  
   document.getElementById('modal-scanner-live').style.display = 'flex';
+  if (!html5QrCodeLive) html5QrCodeLive = new Html5Qrcode("interactive-reader");
   
-  if (!html5QrCodeLive) {
-    html5QrCodeLive = new Html5Qrcode("interactive-reader");
-  }
   const config = { 
     fps: 20, 
     qrbox: { width: 280, height: 65 },
@@ -1190,45 +1193,31 @@ window.abrirScannerAoVivo = function(targetInputId, callbackOnScan) {
     var input = document.getElementById(activeTargetInputId);
     if (input) {
       var limpo = decodedText.trim();
-      if (/^\d[\d\s-]*\d$/.test(limpo)) {
-        limpo = limpo.replace(/\D/g, '');
-      }
+      if (/^\d[\d\s-]*\d$/.test(limpo)) limpo = limpo.replace(/\D/g, '');
       input.value = limpo;
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
     window.toast('Lido ao vivo: ' + decodedText, 'ok');
     if (activeScanCallback) activeScanCallback();
   }
-  html5QrCodeLive.start(
-    { facingMode: "environment" },
-    config,
-    aoEscanear,
-    function() {}
-  ).catch(function() {
-    html5QrCodeLive.start(
-      { facingMode: "user" },
-      config,
-      aoEscanear,
-      function() {}
-    ).catch(function() {
-      window.toast('Não foi possível acessar a câmera do dispositivo.', 'er');
-    });
+  html5QrCodeLive.start({ facingMode: "environment" }, config, aoEscanear, function(){})
+  .catch(function() {
+    html5QrCodeLive.start({ facingMode: "user" }, config, aoEscanear, function(){})
+    .catch(function() { window.toast('Não foi possível acessar a câmera do dispositivo.', 'er'); });
   });
 };
 window.alternarZoom = function() {
   if (!html5QrCodeLive || !html5QrCodeLive.isScanning) return;
   const videoEl = document.querySelector("#interactive-reader video");
-  
   if (videoEl && videoEl.srcObject) {
     const track = videoEl.srcObject.getVideoTracks()[0];
     const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-    
     if (capabilities.zoom) {
       zoomAtual = zoomAtual === 1 ? Math.min(2.5, capabilities.zoom.max) : 1;
       track.applyConstraints({ advanced: [{ zoom: zoomAtual }] });
       window.toast('Zoom: ' + zoomAtual + 'x', 'ok');
     } else {
-      window.toast('Zoom não suportado no navegador do computador.', 'w');
+      window.toast('Zoom não suportado no dispositivo.', 'w');
     }
   }
 };
@@ -1243,43 +1232,63 @@ window.pararScannerAoVivo = function() {
     document.getElementById('modal-scanner-live').style.display = 'none';
   }
 };
-window.executarLogin = function() {
+
+// ============================================
+// NOVO LOGIN MIGRADOPARA SUPABASE
+// ============================================
+window.executarLogin = async function() {
   var u = (document.getElementById('login-user').value || '').trim();
   var p = (document.getElementById('login-pass').value || '').trim();
   if(!u || !p) { window.toast('Preencha usuário e senha!', 'er'); return; }
   
   var btn = document.getElementById('btn-do-login'); 
   if (btn) { btn.disabled = true; btn.textContent = 'Aguarde...'; }
-  var timerTrava = setTimeout(function() {
+
+  try {
+    const { data: usuario, error } = await db
+      .from('usuarios')
+      .select('*')
+      .eq('usuario', u)
+      .eq('senha', p)
+      .maybeSingle();
+
     if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
-    window.toast('Servidor demorou a responder. Tente novamente.', 'er');
-  }, 31000);
-  google.script.run
-    .withSuccessHandler(function(res){
-      clearTimeout(timerTrava);
-      if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
-      
-      if(res && res.sucesso) {
-        usuarioLogado = res.usuario;
-        var primeiroNome = usuarioLogado.nome ? usuarioLogado.nome.split(' ')[0] : 'Usuário';
-        document.getElementById('user-greet').textContent = 'Olá, ' + primeiroNome + '!';
-        var respInput = document.getElementById('resp');
-        if (respInput) respInput.value = usuarioLogado.nome || '';
-        
-        window.atualizarVisibilidadeMenu();
-        window.toast('Login efetuado com sucesso!', 'ok'); 
-        window.nav('home');
-      } else { 
-        window.toast(res ? res.mensagem : 'Usuário ou senha inválidos!', 'er'); 
-      }
-    })
-    .withFailureHandler(function(err){
-      clearTimeout(timerTrava);
-      if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
-      window.toast('Erro no servidor ao realizar login.', 'er');
-    })
-    .fazerLogin(u, p);
+
+    if (error) {
+      console.error('Erro no Supabase:', error);
+      window.toast('Erro ao conectar com o banco de dados.', 'er');
+      return;
+    }
+
+    if (!usuario) {
+      window.toast('Usuário ou senha incorretos!', 'er');
+      return;
+    }
+
+    if (usuario.status !== 'APROVADO') {
+      window.toast('Cadastro aguardando aprovação do administrador!', 'w');
+      return;
+    }
+
+    // Login Bemsucedido
+    usuarioLogado = usuario;
+    localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
+
+    var primeiroNome = usuarioLogado.nome ? usuarioLogado.nome.split(' ')[0] : 'Usuário';
+    document.getElementById('user-greet').textContent = 'Olá, ' + primeiroNome + '!';
+    var respInput = document.getElementById('resp');
+    if (respInput) respInput.value = usuarioLogado.nome || '';
+    
+    window.atualizarVisibilidadeMenu();
+    window.toast('Login efetuado com sucesso!', 'ok'); 
+    window.nav('home');
+  } catch (err) {
+    if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
+    console.error('Erro geral no login:', err);
+    window.toast('Erro ao realizar login.', 'er');
+  }
 };
+
 window.executarSolicitacao = function() {
   var nome = (document.getElementById('sol-nome').value || '').trim();
   var funcao = (document.getElementById('sol-funcao').value || '').trim();
@@ -1307,8 +1316,9 @@ window.executarSolicitacao = function() {
       window.toast('Erro de comunicação.', 'er'); 
     })
     .solicitarAcesso({ nome: nome, funcao: funcao, local: local, telefone: telefone });
-  };
-  function carregarSistemaOtimizado() {
+};
+
+function carregarSistemaOtimizado() {
   const cacheValidades = localStorage.getItem('cache_validades');
   const cacheClientes = localStorage.getItem('cache_clientes');
 
@@ -1337,8 +1347,22 @@ window.executarSolicitacao = function() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Carrega os dados otimizados assim que a página abre
   carregarSistemaOtimizado();
+
+  // Restaurar sessão de login salva
+  const sessaoGuardada = localStorage.getItem('usuarioLogado');
+  if (sessaoGuardada) {
+    try {
+      usuarioLogado = JSON.parse(sessaoGuardada);
+      var primeiroNome = usuarioLogado.nome ? usuarioLogado.nome.split(' ')[0] : 'Usuário';
+      var userGreetEl = document.getElementById('user-greet');
+      if (userGreetEl) userGreetEl.textContent = 'Olá, ' + primeiroNome + '!';
+      var respInput = document.getElementById('resp');
+      if (respInput) respInput.value = usuarioLogado.nome || '';
+      window.atualizarVisibilidadeMenu();
+      window.nav('home');
+    } catch(e) { console.error('Erro ao restaurar sessão:', e); }
+  }
 
   // ABRIR E FECHAR O MENU LATERAL (DRAWER)
   safeAddEvent('btn-open-tools', 'click', function() {
@@ -1351,7 +1375,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.target === this) this.style.display = 'none';
   });
 
-  // Navegação geral por botões
   document.querySelectorAll('[data-nav]').forEach(function(btn){
     btn.addEventListener('click', function(){
       var target = this.getAttribute('data-nav');
@@ -1361,6 +1384,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 });
+
   safeAddEvent('file-cam-input', 'change', async function(e) {
     if (!e.target.files || e.target.files.length === 0) return;
     var imageFile = e.target.files[0];
@@ -1368,20 +1392,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     try {
       var decodedText = null;
-      
       if ('BarcodeDetector' in window) {
         try {
           var detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code'] });
           var bitmap = await createImageBitmap(imageFile);
           var barcodes = await detector.detect(bitmap);
-          if (barcodes && barcodes.length > 0) {
-            decodedText = barcodes[0].rawValue;
-          }
-        } catch(eDetector) {
-          console.log("BarcodeDetector nativo falhou, usando Html5Qrcode...", eDetector);
-        }
+          if (barcodes && barcodes.length > 0) decodedText = barcodes[0].rawValue;
+        } catch(eDetector) {}
       }
-      
       if (!decodedText) {
         var html5QrCode = new Html5Qrcode("reader");
         decodedText = await html5QrCode.scanFile(imageFile, true);
@@ -1390,24 +1408,22 @@ document.addEventListener('DOMContentLoaded', function() {
         var input = document.getElementById(activeTargetInputId);
         if (input) {
           var limpo = decodedText.trim();
-          if (/^\d[\d\s-]*\d$/.test(limpo)) {
-            limpo = limpo.replace(/\D/g, '');
-          }
+          if (/^\d[\d\s-]*\d$/.test(limpo)) limpo = limpo.replace(/\D/g, '');
           input.value = limpo;
           input.dispatchEvent(new Event('input', { bubbles: true }));
         }
         window.toast('Lido com sucesso: ' + decodedText, 'ok');
         if (activeScanCallback) activeScanCallback();
       } else {
-        window.toast('Código de barras não identificado na imagem. Foque melhor.', 'er');
+        window.toast('Código de barras não identificado na imagem.', 'er');
       }
     } catch(err) {
-      console.error("Erro no processamento da foto:", err);
       window.toast('Não foi possível ler o código na foto.', 'er');
     } finally {
       e.target.value = '';
     }
   });
+
   safeAddEvent('btn-close-scanner-live', 'click', window.pararScannerAoVivo);
   safeAddEvent('btn-switch-photo-mode', 'click', function() {
     window.pararScannerAoVivo();
@@ -1417,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', function() {
   safeAddEvent('btn-cam-cad', 'click', function() { window.abrirScannerAoVivo('ncodbarra', window.consultarProdutoInternet); });
   safeAddEvent('btn-cam-cad-search', 'click', function() { window.abrirScannerAoVivo('search-cad-input', function() { window.renderListaCadastrados(); }); });
   safeAddEvent('btn-cam-val-search', 'click', function() { window.abrirScannerAoVivo('val-search-input', function() { window.popularSelectValidades(); }); });
-  // EVENTOS DE BUSCA OTIMIZADOS
+
   safeAddEvent('search-input', 'input', window.debounce(function(){ limiteExibicao = 50; window.renderContagem(); }, 250));
   safeAddEvent('search-cad-input', 'input', window.debounce(function(){ limiteCadExibicao = 50; window.renderListaCadastrados(); }, 250));
   safeAddEvent('search-add-item', 'input', window.debounce(function(){ window.renderListaAdicaoItem(); }, 250));
@@ -1443,35 +1459,24 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   safeAddEvent('cartaz-prod-name', 'input', window.atualizarPreviewCartaz);
   safeAddEvent('cartaz-prod-price', 'input', window.atualizarPreviewCartaz);
-  // BOTÕES DE ATUALIZAÇÃO DE CACHE
+
   safeAddEvent('btn-cache-contagem', 'click', function() {
     var btn = this; btn.disabled = true; btn.textContent = '🔄 Atualizando...';
-    google.script.run
-      .withSuccessHandler(function(res) { 
-        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache'; 
-        window.toast(res ? res.mensagem : 'Cache atualizado!', (res && res.sucesso !== false) ? 'ok' : 'er'); 
-        if (!res || res.sucesso !== false) window.carregarContagem(); 
-      })
-      .withFailureHandler(function(err) {
-        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache';
-        window.toast('Erro ao comunicar com o servidor de cache.', 'er');
-      })
-      .atualizarCache();
+    google.script.run.withSuccessHandler(function(res) { 
+      btn.disabled = false; btn.textContent = '🔄 Atualizar Cache'; 
+      window.toast(res ? res.mensagem : 'Cache atualizado!', (res && res.sucesso !== false) ? 'ok' : 'er'); 
+      if (!res || res.sucesso !== false) window.carregarContagem(); 
+    }).atualizarCache();
   });
   safeAddEvent('btn-cache-cadastrar', 'click', function() {
     var btn = this; btn.disabled = true; btn.textContent = '🔄 Atualizando...';
-    google.script.run
-      .withSuccessHandler(function(res) { 
-        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache'; 
-        window.toast(res ? res.mensagem : 'Cache atualizado!', (res && res.sucesso !== false) ? 'ok' : 'er'); 
-        if (!res || res.sucesso !== false) window.carregarProdutos(); 
-      })
-      .withFailureHandler(function(err) {
-        btn.disabled = false; btn.textContent = '🔄 Atualizar Cache';
-        window.toast('Erro ao comunicar com o servidor de cache.', 'er');
-      })
-      .atualizarCache();
+    google.script.run.withSuccessHandler(function(res) { 
+      btn.disabled = false; btn.textContent = '🔄 Atualizar Cache'; 
+      window.toast(res ? res.mensagem : 'Cache atualizado!', (res && res.sucesso !== false) ? 'ok' : 'er'); 
+      if (!res || res.sucesso !== false) window.carregarProdutos(); 
+    }).atualizarCache();
   });
+
   safeAddEvent('btn-save-validade', 'click', function() {
     var idProd = document.getElementById('val-select-prod').value;
     var dtVencRaw = document.getElementById('val-dt-venc').value;
@@ -1480,9 +1485,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var lote = document.getElementById('val-lote').value;
     if (!idProd) { window.toast('Selecione um produto!', 'er'); return; }
     if (!dtVenc) { window.toast('Informe a data de vencimento!', 'er'); return; }
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
+    var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
     var prodObj = produtosContagem.find(function(p){ return norm(p.id) === norm(idProd); });
     var nomeProd = prodObj ? prodObj.nome : '';
     var payload = {
@@ -1501,22 +1504,14 @@ document.addEventListener('DOMContentLoaded', function() {
       responsavel: usuarioLogado ? usuarioLogado.nome : ''
     };
     google.script.run.withSuccessHandler(function(res) {
-      btn.disabled = false;
-      btn.textContent = 'Salvar Validade';
-      if (res && res.sucesso === false) {
-        window.toast(res.mensagem || 'Erro ao salvar validade.', 'er');
-      } else {
-        window.toast((res && res.mensagem) ? res.mensagem : 'Validade salva com sucesso!', 'ok');
-        document.getElementById('val-dt-venc').value = '';
-        document.getElementById('val-lote').value = '';
-        window.carregarValidades();
-      }
-    }).withFailureHandler(function(err) {
-      btn.disabled = false;
-      btn.textContent = 'Salvar Validade';
-      window.toast('Erro ao salvar validade.', 'er');
+      btn.disabled = false; btn.textContent = 'Salvar Validade';
+      window.toast((res && res.mensagem) ? res.mensagem : 'Validade salva com sucesso!', 'ok');
+      document.getElementById('val-dt-venc').value = '';
+      document.getElementById('val-lote').value = '';
+      window.carregarValidades();
     }).salvarValidade(payload);
   });
+
   safeAddEvent('btn-save-qv', 'click', function() {
     var idProd = document.getElementById('qv-prod-id').value;
     var dtVencRaw = document.getElementById('qv-dt-venc').value;
@@ -1524,9 +1519,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var qtd = document.getElementById('qv-qtd').value;
     var lote = document.getElementById('qv-lote').value;
     if (!dtVenc) { window.toast('Informe a data de vencimento!', 'er'); return; }
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
+    var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
     var prodObj = produtosContagem.find(function(p){ return norm(p.id) === norm(idProd); });
     var nomeProd = prodObj ? prodObj.nome : document.getElementById('qv-prod-nome').textContent;
     var payload = {
@@ -1545,22 +1538,13 @@ document.addEventListener('DOMContentLoaded', function() {
       responsavel: usuarioLogado ? usuarioLogado.nome : ''
     };
     google.script.run.withSuccessHandler(function(res) {
-      btn.disabled = false;
-      btn.textContent = 'Confirmar Validade';
-      if (res && res.sucesso === false) {
-        window.toast(res.mensagem || 'Erro ao salvar validade.', 'er');
-      } else {
-        window.toast((res && res.mensagem) ? res.mensagem : 'Validade salva com sucesso!', 'ok');
-        document.getElementById('modal-quick-validade').style.display = 'none';
-        window.carregarContagem();
-      }
-    }).withFailureHandler(function(err) {
-      btn.disabled = false;
-      btn.textContent = 'Confirmar Validade';
-      window.toast('Erro ao salvar validade.', 'er');
+      btn.disabled = false; btn.textContent = 'Confirmar Validade';
+      window.toast((res && res.mensagem) ? res.mensagem : 'Validade salva com sucesso!', 'ok');
+      document.getElementById('modal-quick-validade').style.display = 'none';
+      window.carregarContagem();
     }).salvarValidade(payload);
   });
-  // SALVAR VENCIMENTO DO CLIENTE
+
   safeAddEvent('btn-save-vc', 'click', function() {
     var idCliente = document.getElementById('vc-cliente-id').value;
     var dtVencRaw = document.getElementById('vc-dt-venc').value;
@@ -1569,21 +1553,14 @@ document.addEventListener('DOMContentLoaded', function() {
     var dtVencAte = formatarDataBR(dtVencAteRaw);
     var obs = document.getElementById('vc-obs').value;
     if (!dtVenc && !dtVencAte) { window.toast('Informe ao menos uma data de vencimento!', 'er'); return; }
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
+    var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
     google.script.run.withSuccessHandler(function(res) {
-      btn.disabled = false;
-      btn.textContent = 'Salvar Vencimento';
+      btn.disabled = false; btn.textContent = 'Salvar Vencimento';
       window.toast(res ? res.mensagem : 'Vencimento salvo!', (res && res.sucesso !== false) ? 'ok' : 'er');
       if (!res || res.sucesso !== false) {
         document.getElementById('modal-venc-cliente-edit').style.display = 'none';
         window.carregarVencimentosClientesPage();
       }
-    }).withFailureHandler(function(err) {
-      btn.disabled = false;
-      btn.textContent = 'Salvar Vencimento';
-      window.toast('Erro ao salvar vencimento.', 'er');
     }).salvarVencimentoCliente({
       idCliente: idCliente,
       dataVenc: dtVenc,
@@ -1592,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', function() {
       usuario: usuarioLogado ? usuarioLogado.nome : ''
     });
   });
-  // SALVAR PERMISSÕES DO USUÁRIO
+
   safeAddEvent('btn-save-prof-perms', 'click', function() {
     var userId = document.getElementById('prof-user-id').value;
     if (!userId) { window.toast('Usuário não selecionado!', 'er'); return; }
@@ -1607,27 +1584,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('prof-p-ordemcompra').checked) perms.push('ordemcompra');
     if (document.getElementById('prof-p-gestao').checked) perms.push('gestao');
     if (document.getElementById('prof-p-vencclientes').checked) perms.push('vencclientes');
-    var btn = this;
-    btn.disabled = true;
-    btn.textContent = 'Salvando...';
-    google.script.run
-      .withSuccessHandler(function(res) {
-        btn.disabled = false;
-        btn.textContent = 'Salvar Alterações de Permissões';
-        window.toast(res ? res.mensagem : 'Permissões atualizadas com sucesso!', res && res.sucesso ? 'ok' : 'er');
-        if (res && res.sucesso) {
-          document.getElementById('modal-perfil-user').style.display = 'none';
-          window.carregarUsuariosAdmin();
-        }
-      })
-      .withFailureHandler(function(err) {
-        btn.disabled = false;
-        btn.textContent = 'Salvar Alterações de Permissões';
-        window.toast('Erro ao salvar permissões.', 'er');
-      })
-      .salvarPermissoesUsuario(userId, perms, usuarioLogado ? usuarioLogado.usuario : '');
+    var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
+    google.script.run.withSuccessHandler(function(res) {
+      btn.disabled = false; btn.textContent = 'Salvar Alterações de Permissões';
+      window.toast(res ? res.mensagem : 'Permissões atualizadas com sucesso!', res && res.sucesso ? 'ok' : 'er');
+      if (res && res.sucesso) {
+        document.getElementById('modal-perfil-user').style.display = 'none';
+        window.carregarUsuariosAdmin();
+      }
+    }).salvarPermissoesUsuario(userId, perms, usuarioLogado ? usuarioLogado.usuario : '');
   });
-  // OUTROS BINDINGS
+
   safeAddEvent('btn-toggle-adm', 'click', function() {
     var submenu = document.getElementById('adm-submenu'); var chevron = this.querySelector('.chevron');
     if (submenu.style.display === 'flex') { submenu.style.display = 'none'; chevron.style.transform = 'rotate(0deg)'; } 
@@ -1639,9 +1606,15 @@ document.addEventListener('DOMContentLoaded', function() {
     else { submenu.style.display = 'flex'; chevron.style.transform = 'rotate(180deg)'; }
   });
   safeAddEvent('btn-logout', 'click', function(){
-    usuarioLogado = null; document.getElementById('login-user').value = ''; document.getElementById('login-pass').value = '';
-    document.getElementById('drawer-tools').style.display = 'none'; window.toast('Sessão encerrada.', 'ok'); window.nav('login');
+    usuarioLogado = null; 
+    localStorage.removeItem('usuarioLogado');
+    document.getElementById('login-user').value = ''; 
+    document.getElementById('login-pass').value = '';
+    document.getElementById('drawer-tools').style.display = 'none'; 
+    window.toast('Sessão encerrada.', 'ok'); 
+    window.nav('login');
   });
+
   safeAddEvent('btn-save-cont', 'click', function() {
     var resp = document.getElementById('resp').value.trim();
     if (!resp) { window.toast('Informe quem está realizando a contagem!', 'er'); return; }
@@ -1656,40 +1629,39 @@ document.addEventListener('DOMContentLoaded', function() {
     google.script.run.withSuccessHandler(function(res) {
         btn.disabled = false; btn.textContent = 'Salvar Contagem';
         if (res.sucesso) { window.toast(res.mensagem, 'ok'); window.exibirModalRelatorio(res.resumo); contagensAtuais = {}; limiteExibicao = 50; window.renderContagem(); } else { window.toast(res.mensagem, 'er'); }
-      }).withFailureHandler(function(err) { btn.disabled = false; btn.textContent = 'Salvar Contagem'; window.toast('Erro.', 'er'); }).salvarContagem(listaParaSalvar, resp);
+      }).salvarContagem(listaParaSalvar, resp);
   });
+
   safeAddEvent('btn-close-relatorio', 'click', function() { document.getElementById('modal-relatorio').style.display = 'none'; });
   safeAddEvent('btn-close-add-item', 'click', function() { document.getElementById('modal-add-item').style.display = 'none'; });
   safeAddEvent('btn-close-qv', 'click', function() { document.getElementById('modal-quick-validade').style.display = 'none'; });
   safeAddEvent('btn-close-vc', 'click', function() { document.getElementById('modal-venc-cliente-edit').style.display = 'none'; });
   safeAddEvent('btn-close-prof', 'click', function() { document.getElementById('modal-perfil-user').style.display = 'none'; });
   safeAddEvent('btn-close-add-nf-modal', 'click', function() { document.getElementById('modal-add-nf-cliente').style.display = 'none'; });
+
 // FUNCTIONS CONTAGEM E CADASTRO
 window.carregarContagem = function() {
   var loadEl = document.getElementById('load-contagem');
   if (loadEl) loadEl.style.display = 'block';
   document.getElementById('lista-contagem').innerHTML = '';
   limiteExibicao = 50;
-  google.script.run
-    .withSuccessHandler(function(prods) {
-      produtosContagem = (prods || []).map(function(p) {
-        p._s = ((p.nome || '') + ' ' + (p.id || '') + ' ' + (p.codBarra || '')).toLowerCase();
-        p._c = (p.categoria || 'GERAL').toUpperCase();
-        return p;
-      });
-      if (loadEl) loadEl.style.display = 'none';
-      window.popularFiltroCategorias(produtosContagem);
+  google.script.run.withSuccessHandler(function(prods) {
+    produtosContagem = (prods || []).map(function(p) {
+      p._s = ((p.nome || '') + ' ' + (p.id || '') + ' ' + (p.codBarra || '')).toLowerCase();
+      p._c = (p.categoria || 'GERAL').toUpperCase();
+      return p;
+    });
+    if (loadEl) loadEl.style.display = 'none';
+    window.popularFiltroCategorias(produtosContagem);
+    window.renderContagem();
+    google.script.run.withSuccessHandler(function(vencs) {
+      validadesData = vencs || [];
+      window.atualizarMapaValidades();
       window.renderContagem();
-      google.script.run
-        .withSuccessHandler(function(vencs) {
-          validadesData = vencs || [];
-          window.atualizarMapaValidades();
-          window.renderContagem();
-        })
-        .getValidades();
-    })
-    .getProdutos();
+    }).getValidades();
+  }).getProdutos();
 };
+
 window.popularFiltroCategorias = function(prods) {
   var select = document.getElementById('filter-cat');
   var categorias = new Set();
@@ -1702,6 +1674,7 @@ window.popularFiltroCategorias = function(prods) {
     select.value = valorAtual;
   }
 };
+
 window.gerarMetaHtml = function(p, qtd) {
   var ideal = parseInt(p.estoqueIdeal) || 0;
   var metaHtml = 'ID: ' + p.id;
@@ -1725,6 +1698,7 @@ window.gerarMetaHtml = function(p, qtd) {
   }
   return metaHtml;
 };
+
 window.renderContagem = function() {
   var container = document.getElementById('lista-contagem');
   var busca = (document.getElementById('search-input').value || '').toLowerCase().trim();
@@ -1751,7 +1725,7 @@ window.renderContagem = function() {
       var qtd = contagensAtuais[p.id] !== undefined ? contagensAtuais[p.id] : 0;
       var imgHtml = (p.fotoUrl && p.fotoUrl !== 'NOT_FOUND') ? '<img src="' + p.fotoUrl + '" alt="foto">' : '📦';
       var thumbDiv = '<div class="prod-thumb">' + imgHtml + '</div>';
-    html += '<div class="prod-item">' + thumbDiv +
+      html += '<div class="prod-item">' + thumbDiv +
         '<div class="prod-info"><div class="prod-name">' + p.nome + '</div><div class="prod-meta" id="meta-' + p.id + '">' + window.gerarMetaHtml(p, qtd) + '</div></div>' +
         '<div class="prod-counter">' +
           '<button class="btn-qty" onclick="abrirModalValidadeDireta(\'' + p.id + '\')" title="Registrar Validade" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);width:34px;height:34px;font-size:14px;margin-right:4px;">📅</button>' +
@@ -1770,6 +1744,7 @@ window.renderContagem = function() {
   if (btnLoadMore) btnLoadMore.addEventListener('click', function() { limiteExibicao += 50; window.renderContagem(); });
   window.verificarBotaoSalvar();
 };
+
 window.abrirModalValidadeDireta = function(id) {
   var p = produtosContagem.find(function(item){ return String(item.id) === String(id); });
   if (!p) return;
@@ -1780,11 +1755,13 @@ window.abrirModalValidadeDireta = function(id) {
   document.getElementById('qv-lote').value = '';
   document.getElementById('modal-quick-validade').style.display = 'flex';
 };
+
 window.alterarQtd = function(id, delta) {
   var q = contagensAtuais[id] !== undefined ? contagensAtuais[id] : 0;
   q = Math.max(0, q + delta);
   window.definirQtd(id, q);
 };
+
 window.definirQtd = function(id, val) {
   var q = Math.max(0, parseInt(val) || 0);
   contagensAtuais[id] = q;
@@ -1797,15 +1774,15 @@ window.definirQtd = function(id, val) {
   }
   window.verificarBotaoSalvar();
 };
+
 window.verificarBotaoSalvar = function() {
   var btn = document.getElementById('btn-save-cont');
   if (!btn) return;
   var temContagem = Object.keys(contagensAtuais).some(function(k){ return contagensAtuais[k] > 0; });
   btn.disabled = !temContagem;
 };
-// ============================================
+
 // CADASTRO E EDIÇÃO DE PRODUTOS
-// ============================================
 window.carregarProdutos = function() {
   var loadEl = document.getElementById('load-prod');
   if (loadEl) loadEl.style.display = 'block';
@@ -1819,6 +1796,7 @@ window.carregarProdutos = function() {
     window.renderListaCadastrados();
   }).getProdutos();
 };
+
 window.renderListaCadastrados = function() {
   var container = document.getElementById('plist');
   var busca = (document.getElementById('search-cad-input').value || '').toLowerCase().trim();
@@ -1852,6 +1830,7 @@ window.renderListaCadastrados = function() {
   var btnMore = document.getElementById('btn-load-more-cad');
   if (btnMore) btnMore.addEventListener('click', function() { limiteCadExibicao += 50; window.renderListaCadastrados(); });
 };
+
 window.consultarProdutoInternet = function() {
   var codBarra = (document.getElementById('ncodbarra').value || '').trim().replace(/\D/g, '');
   if (!codBarra) { window.toast('Informe o código de barras para pesquisar!', 'er'); return; }
@@ -1879,6 +1858,7 @@ window.consultarProdutoInternet = function() {
     .catch(function(){ window.toast('Erro ao buscar dados na web.', 'er'); });
 };
 safeAddEvent('btn-search-web', 'click', window.consultarProdutoInternet);
+
 safeAddEvent('btn-add', 'click', function() {
   var id = (document.getElementById('nid').value || '').trim();
   var nome = (document.getElementById('nname').value || '').trim();
@@ -1887,29 +1867,24 @@ safeAddEvent('btn-add', 'click', function() {
   var ideal = parseInt(document.getElementById('neideal').value) || 0;
   if (!id || !nome) { window.toast('Informe o ID e o Nome do produto!', 'er'); return; }
   var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
-  google.script.run
-    .withSuccessHandler(function(res) {
-      btn.disabled = false; btn.textContent = modoEdicao ? 'Salvar Edição' : 'Adicionar';
-      window.toast(res ? res.mensagem : 'Salvo com sucesso!', (res && res.sucesso !== false) ? 'ok' : 'er');
-      if (!res || res.sucesso !== false) {
-        document.getElementById('nid').value = '';
-        document.getElementById('nname').value = '';
-        document.getElementById('ncat').value = '';
-        document.getElementById('ncodbarra').value = '';
-        document.getElementById('neideal').value = '';
-        document.getElementById('nid').disabled = false;
-        modoEdicao = false;
-        document.getElementById('form-prod-title').textContent = 'NOVO PRODUTO';
-        document.getElementById('btn-cancel-edit').style.display = 'none';
-        window.carregarProdutos();
-      }
-    })
-    .withFailureHandler(function(err) {
-      btn.disabled = false; btn.textContent = modoEdicao ? 'Salvar Edição' : 'Adicionar';
-      window.toast('Erro ao salvar produto.', 'er');
-    })
-    .salvarProduto(id, nome, cat, ideal, cb, modoEdicao, usuarioLogado ? usuarioLogado.nome : '');
+  google.script.run.withSuccessHandler(function(res) {
+    btn.disabled = false; btn.textContent = modoEdicao ? 'Salvar Edição' : 'Adicionar';
+    window.toast(res ? res.mensagem : 'Salvo com sucesso!', (res && res.sucesso !== false) ? 'ok' : 'er');
+    if (!res || res.sucesso !== false) {
+      document.getElementById('nid').value = '';
+      document.getElementById('nname').value = '';
+      document.getElementById('ncat').value = '';
+      document.getElementById('ncodbarra').value = '';
+      document.getElementById('neideal').value = '';
+      document.getElementById('nid').disabled = false;
+      modoEdicao = false;
+      document.getElementById('form-prod-title').textContent = 'NOVO PRODUTO';
+      document.getElementById('btn-cancel-edit').style.display = 'none';
+      window.carregarProdutos();
+    }
+  }).salvarProduto(id, nome, cat, ideal, cb, modoEdicao, usuarioLogado ? usuarioLogado.nome : '');
 });
+
 window.editarProduto = function(id) {
   var p = prodsCadastrados.find(function(item){ return String(item.id) === String(id); });
   if (!p) return;
@@ -1925,6 +1900,7 @@ window.editarProduto = function(id) {
   document.getElementById('btn-cancel-edit').style.display = 'inline-block';
   window.scrollTo(0,0);
 };
+
 safeAddEvent('btn-cancel-edit', 'click', function() {
   document.getElementById('nid').value = '';
   document.getElementById('nid').disabled = false;
@@ -1937,22 +1913,17 @@ safeAddEvent('btn-cancel-edit', 'click', function() {
   document.getElementById('btn-add').textContent = 'Adicionar';
   this.style.display = 'none';
 });
+
 window.excluirProduto = function(id) {
   if (!confirm('Tem certeza que deseja excluir o produto ID: ' + id + '?')) return;
   window.toast('Removendo produto...', 'ok');
-  google.script.run
-    .withSuccessHandler(function(res) {
-      window.toast('Produto removido!', 'ok');
-      window.carregarProdutos();
-    })
-    .withFailureHandler(function() {
-      window.toast('Erro ao remover produto.', 'er');
-    })
-    .removerProduto(id, usuarioLogado ? usuarioLogado.nome : '');
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast('Produto removido!', 'ok');
+    window.carregarProdutos();
+  }).removerProduto(id, usuarioLogado ? usuarioLogado.nome : '');
 };
-// ============================================
+
 // DASHBOARD BI E HISTÓRICO
-// ============================================
 window.carregarRelatorio = function() {
   var loadEl = document.getElementById('load-rel');
   if (loadEl) loadEl.style.display = 'block';
@@ -1965,6 +1936,7 @@ window.carregarRelatorio = function() {
     window.renderDashboardBi();
   }).getBIFullData();
 };
+
 window.popularFiltrosBi = function(data) {
   var selCat = document.getElementById('bi-filter-cat');
   var selResp = document.getElementById('bi-filter-resp');
@@ -1973,22 +1945,17 @@ window.popularFiltrosBi = function(data) {
   (data.historico || []).forEach(function(h){ if(h.responsavel) resps.add(h.responsavel); });
   var htmlCat = '<option value="TODAS">Todas as Categorias</option>';
   cats.forEach(function(c){ htmlCat += '<option value="' + c + '">' + c + '</option>'; });
-  var catAtual = selCat.value;
   selCat.innerHTML = htmlCat;
-  if (catAtual && Array.prototype.some.call(selCat.options, function(o){ return o.value === catAtual; })) {
-    selCat.value = catAtual;
-  }
+  
   var htmlResp = '<option value="TODOS">Todos os Usuários</option>';
   resps.forEach(function(r){ htmlResp += '<option value="' + r + '">' + r + '</option>'; });
-  var respAtual = selResp.value;
   selResp.innerHTML = htmlResp;
-  if (respAtual && Array.prototype.some.call(selResp.options, function(o){ return o.value === respAtual; })) {
-    selResp.value = respAtual;
-  }
 };
+
 safeAddEvent('bi-filter-ano', 'change', function(){ window.renderDashboardBi(); });
 safeAddEvent('bi-filter-cat', 'change', function(){ window.renderDashboardBi(); });
 safeAddEvent('bi-filter-resp', 'change', function(){ window.renderDashboardBi(); });
+
 window.renderDashboardBi = function() {
   if (!rawBiData || !rawBiData.historico) return;
   var fAno = document.getElementById('bi-filter-ano').value;
@@ -2016,7 +1983,7 @@ window.renderDashboardBi = function() {
   document.getElementById('bi-kpi-tot-ok').textContent = totOk;
   document.getElementById('bi-kpi-tot-diff').textContent = totDiff;
   document.getElementById('bi-kpi-acuracia').textContent = acuracia + '%';
-  // DOUGHNUT CHART - DIVERGÊNCIAS
+
   var ctxCat = document.getElementById('chart-cat');
   if (ctxCat) {
     if (chartCatInstance) chartCatInstance.destroy();
@@ -2034,7 +2001,7 @@ window.renderDashboardBi = function() {
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#cbd5e1', font: { size: 10 } } } } }
     });
   }
-  // LINE CHART - TENDÊNCIA
+
   var ctxTrend = document.getElementById('chart-trend');
   if (ctxTrend) {
     if (chartTrendInstance) chartTrendInstance.destroy();
@@ -2069,6 +2036,7 @@ window.renderDashboardBi = function() {
     });
   }
 };
+
 window.carregarHistorico = function() {
   var loadEl = document.getElementById('load-historico');
   if (loadEl) loadEl.style.display = 'block';
@@ -2099,11 +2067,13 @@ window.carregarHistorico = function() {
     container.innerHTML = html;
   }).getHistoricoAgrupado();
 };
+
 window.exibirModalRelatorioIndex = function(idx) {
   if (historicoSalvoData && historicoSalvoData[idx]) {
     window.exibirModalRelatorio(historicoSalvoData[idx]);
   }
 };
+
 window.exibirModalRelatorio = function(resumo) {
   if (!resumo) return;
   relatorioAtivoAdicao = resumo;
@@ -2143,18 +2113,21 @@ window.exibirModalRelatorio = function(resumo) {
     modal.style.display = 'flex';
   }
 };
+
 safeAddEvent('btn-print-relatorio', 'click', function() {
   document.body.classList.add('printing-relatorio');
   var limpar = function() { document.body.classList.remove('printing-relatorio'); window.removeEventListener('afterprint', limpar); };
   window.addEventListener('afterprint', limpar);
   setTimeout(function() { window.print(); }, 60);
 });
+
 window.abrirModalAdicionarItem = function() {
   if (!relatorioAtivoAdicao) return;
   document.getElementById('add-item-sub').textContent = 'Injetando no relatório de ' + relatorioAtivoAdicao.dataHora;
   document.getElementById('modal-add-item').style.display = 'flex';
   window.renderListaAdicaoItem();
 };
+
 window.renderListaAdicaoItem = function() {
   var container = document.getElementById('lista-add-item');
   var busca = (document.getElementById('search-add-item').value || '').toLowerCase().trim();
@@ -2174,41 +2147,36 @@ window.renderListaAdicaoItem = function() {
   });
   container.innerHTML = html;
 };
+
 window.injetarItemRelatorio = function(id) {
   if (!relatorioAtivoAdicao) return;
   var qtdInput = document.getElementById('add-qtd-' + id);
   var qtd = parseInt(qtdInput.value) || 1;
   window.toast('Adicionando item ao relatório...', 'ok');
-  google.script.run
-    .withSuccessHandler(function(res) {
-      window.toast(res ? res.mensagem : 'Item adicionado!', (res && res.sucesso) ? 'ok' : 'er');
-      if (res && res.sucesso) {
-        document.getElementById('modal-add-item').style.display = 'none';
-        document.getElementById('modal-relatorio').style.display = 'none';
-        window.carregarHistorico();
-      }
-    })
-    .withFailureHandler(function() { window.toast('Erro ao injetar item.', 'er'); })
-    .adicionarItemAoRelatorio(relatorioAtivoAdicao.dataHora, id, qtd, relatorioAtivoAdicao.responsavel);
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast(res ? res.mensagem : 'Item adicionado!', (res && res.sucesso) ? 'ok' : 'er');
+    if (res && res.sucesso) {
+      document.getElementById('modal-add-item').style.display = 'none';
+      document.getElementById('modal-relatorio').style.display = 'none';
+      window.carregarHistorico();
+    }
+  }).adicionarItemAoRelatorio(relatorioAtivoAdicao.dataHora, id, qtd, relatorioAtivoAdicao.responsavel);
 };
+
 window.recalcularRelatorioOriginal = function() {
   if (!relatorioAtivoAdicao) return;
   if (!confirm('Deseja recalcular a diferença do relatório ' + relatorioAtivoAdicao.dataHora + ' usando os saldos ideais do Cache atual?')) return;
   window.toast('Recalculando valores...', 'ok');
-  google.script.run
-    .withSuccessHandler(function(res) {
-      window.toast(res ? res.mensagem : 'Relatório recalculado!', (res && res.sucesso) ? 'ok' : 'er');
-      if (res && res.sucesso) {
-        document.getElementById('modal-relatorio').style.display = 'none';
-        window.carregarHistorico();
-      }
-    })
-    .withFailureHandler(function() { window.toast('Erro ao recalcular.', 'er'); })
-    .recalcularRelatorio(relatorioAtivoAdicao.dataHora);
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast(res ? res.mensagem : 'Relatório recalculado!', (res && res.sucesso) ? 'ok' : 'er');
+    if (res && res.sucesso) {
+      document.getElementById('modal-relatorio').style.display = 'none';
+      window.carregarHistorico();
+    }
+  }).recalcularRelatorio(relatorioAtivoAdicao.dataHora);
 };
-// ============================================
+
 // VALIDADES E NOTIFICAÇÕES
-// ============================================
 window.carregarValidades = function() {
   var loadEl = document.getElementById('load-validades');
   if (loadEl) loadEl.style.display = 'block';
@@ -2227,6 +2195,7 @@ window.carregarValidades = function() {
     window.renderListaValidades();
   }).getValidades();
 };
+
 window.popularSelectValidades = function() {
   var selCat = document.getElementById('val-filter-cat');
   var selProd = document.getElementById('val-select-prod');
@@ -2252,6 +2221,7 @@ window.popularSelectValidades = function() {
   });
   selProd.innerHTML = htmlProd;
 };
+
 window.renderListaValidades = function() {
   var container = document.getElementById('lista-validades');
   if (!validadesData || validadesData.length === 0) {
@@ -2283,17 +2253,16 @@ window.renderListaValidades = function() {
   });
   container.innerHTML = html;
 };
+
 window.excluirValidade = function(row) {
   if (!confirm('Deseja remover este registro de validade?')) return;
   window.toast('Removendo registro...', 'ok');
-  google.script.run
-    .withSuccessHandler(function(res) {
-      window.toast(res ? res.mensagem : 'Removido!', 'ok');
-      window.carregarValidades();
-    })
-    .withFailureHandler(function() { window.toast('Erro ao remover.', 'er'); })
-    .removerValidade(row);
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast(res ? res.mensagem : 'Removido!', 'ok');
+    window.carregarValidades();
+  }).removerValidade(row);
 };
+
 window.carregarNotificacoes = function() {
   var loadEl = document.getElementById('load-notif');
   if (loadEl) loadEl.style.display = 'block';
@@ -2331,9 +2300,8 @@ window.carregarNotificacoes = function() {
     container.innerHTML = html;
   }).getValidades();
 };
-// ============================================
+
 // CARTAZ DE PROMOÇÃO
-// ============================================
 window.prepararTelaCartaz = function() {
   if (produtosContagem && produtosContagem.length > 0) {
     window.popularSelectCartaz();
@@ -2344,6 +2312,7 @@ window.prepararTelaCartaz = function() {
     }).getProdutos();
   }
 };
+
 window.popularSelectCartaz = function() {
   var selCat = document.getElementById('cartaz-filter-cat');
   var selProd = document.getElementById('cartaz-select-prod');
@@ -2369,6 +2338,7 @@ window.popularSelectCartaz = function() {
   });
   selProd.innerHTML = htmlProd;
 };
+
 window.atualizarPreviewCartaz = function() {
   var nome = document.getElementById('cartaz-prod-name').value || 'NOME DO PRODUTO';
   var preco = document.getElementById('cartaz-prod-price').value || '0,00';
@@ -2380,46 +2350,30 @@ window.atualizarPreviewCartaz = function() {
   document.getElementById('prev-price-int').textContent = intPart;
   document.getElementById('prev-price-dec').textContent = decPart;
 };
+
 safeAddEvent('btn-print-cartaz', 'click', function() {
     var nome = document.getElementById('prev-prod-title').textContent;
     var intPart = document.getElementById('prev-price-int').textContent;
     var decPart = document.getElementById('prev-price-dec').textContent;
-    
     var janela = window.open('', '_blank');
     if (!janela) { window.toast('Desative o bloqueador de popups para imprimir.', 'er'); return; }
     
     janela.document.write('<html><head><title>Cartaz Promocional - ' + nome + '</title>');
     janela.document.write('<style>');
     janela.document.write('@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Oswald:wght@700&display=swap");');
-    
     janela.document.write('* { margin:0; padding:0; box-sizing:border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }');
     janela.document.write('body, html { width: 100%; height: 100%; background:#fff; font-family:"Montserrat", sans-serif; }');
-    
-    // Configuração para ocupar a folha toda
     janela.document.write('.poster-page { width: 100%; height: 100%; display:flex; flex-direction:column; overflow:hidden; position:relative; background: #ffffff; }');
-    
-    // Banner superior cinza com o triângulo invertido
     janela.document.write('.poster-header-banner { background-color:#e5e7eb !important; width: 100%; padding: 80px 20px 100px; text-align:center; clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%); -webkit-clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%); }');
-    
-    // Texto PROMOÇÃO
     janela.document.write('.poster-header-title { font-size:110px; font-weight:900; letter-spacing:2px; color:#000000 !important; text-transform:uppercase; text-shadow: 4px 4px 10px rgba(0,0,0,0.15); }');
-    
-    // Conteúdo central (Nome e Preço)
     janela.document.write('.poster-body-content { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap: 80px; padding: 40px; text-align:center; }');
-    
-    // Nome do Produto
     janela.document.write('.poster-prod-title { font-size:85px; font-weight:700; color:#000000 !important; text-transform:uppercase; line-height:1.1; word-break:break-word; max-width:95%; font-family:"Oswald", sans-serif; }');
-    
-    // Container do Preço
     janela.document.write('.poster-price-container { display:flex; align-items:baseline; justify-content:center; font-weight:900; color:#000000 !important; }');
     janela.document.write('.poster-price-symbol { font-size:90px; margin-right:15px; font-weight:900; }');
     janela.document.write('.poster-price-big { font-size:450px; line-height:0.75; font-weight:900; letter-spacing:-15px; }');
     janela.document.write('.poster-price-cents { font-size:160px; font-weight:900; margin-left:10px; }');
-    
-    // Remove margens de impressão
     janela.document.write('@media print { @page { size: A4 portrait; margin: 0; } body { padding:0; margin:0; } }');
     janela.document.write('</style></head><body>');
-    
     janela.document.write('<div class="poster-page">');
     janela.document.write('  <div class="poster-header-banner"><div class="poster-header-title">PROMOÇÃO</div></div>');
     janela.document.write('  <div class="poster-body-content">');
@@ -2431,16 +2385,13 @@ safeAddEvent('btn-print-cartaz', 'click', function() {
     janela.document.write('    </div>');
     janela.document.write('  </div>');
     janela.document.write('</div>');
-    
     janela.document.write('</body></html>');
     janela.document.close();
     janela.focus();
-    
     setTimeout(function() { janela.print(); janela.close(); }, 800);
-  });
-// ============================================
-// NOTA FISCAL E FATURAMENTO (PLANILHA EXTERNA)
-// ============================================
+});
+
+// NOTA FISCAL E FATURAMENTO
 window.carregarNotasFiscais = function() {
   var loadEl = document.getElementById('load-nf');
   if (loadEl) loadEl.style.display = 'block';
@@ -2456,6 +2407,7 @@ window.carregarNotasFiscais = function() {
     }
   }).getDadosNotaFiscalExterna();
 };
+
 window.popularFiltrosNF = function() {
   var selCat = document.getElementById('nf-filter-cat');
   var html = '<option value="TODAS">Todas as Categorias / Seções</option>';
@@ -2466,6 +2418,7 @@ window.popularFiltrosNF = function() {
   }
   selCat.innerHTML = html;
 };
+
 window.alternarAbaNF = function(aba) {
   abaNFAtiva = aba;
   document.getElementById('tab-btn-nf').className = 'tab-btn' + (aba === 'nf' ? ' active' : '');
@@ -2475,6 +2428,7 @@ window.alternarAbaNF = function(aba) {
   window.popularFiltrosNF();
   window.renderAbaSelecionadaNF();
 };
+
 window.renderAbaSelecionadaNF = function() {
   var busca = (document.getElementById('nf-search-input').value || '').toLowerCase().trim();
   var fCat = document.getElementById('nf-filter-cat').value;
@@ -2527,6 +2481,7 @@ window.renderAbaSelecionadaNF = function() {
     containerFat.innerHTML = htmlFat || '<div class="card empty">Nenhum registro localizado no Faturamento.</div>';
   }
 };
+
 safeAddEvent('btn-open-add-nf-modal', 'click', function() {
   document.getElementById('modal-add-nf-cliente').style.display = 'flex';
 });
@@ -2563,9 +2518,8 @@ safeAddEvent('btn-save-novo-cliente-nf', 'click', function() {
     }
   }).salvarClienteExterno(payload);
 });
-// ============================================
-// VENCIMENTO DE CLIENTES (LÊ SOMENTE "Relatório Clientes")
-// ============================================
+
+// VENCIMENTO DE CLIENTES
 window.carregarVencimentosClientesPage = function() {
   var loadEl = document.getElementById('load-venc-cli');
   if (loadEl) loadEl.style.display = 'block';
@@ -2576,6 +2530,7 @@ window.carregarVencimentosClientesPage = function() {
     window.renderListaVencClientes();
   }).getVencimentosClientes();
 };
+
 window.abrirModalVencCliente = function(id) {
   var cli = (vencClientesList || []).find(function(c){ return String(c.id) === String(id); });
   if (!cli) return;
@@ -2586,6 +2541,7 @@ window.abrirModalVencCliente = function(id) {
   document.getElementById('vc-obs').value = cli.observacao || '';
   document.getElementById('modal-venc-cliente-edit').style.display = 'flex';
 };
+
 window.renderListaVencClientes = function() {
   var container = document.getElementById('lista-venc-cliente');
   if (!container) return;
@@ -2593,12 +2549,10 @@ window.renderListaVencClientes = function() {
   var filtroCat = document.getElementById('venc-cli-filter-cat').value;
   var dtDe = document.getElementById('venc-cli-dt-de').value;
   var dtAte = document.getElementById('venc-cli-dt-ate').value;
-  var hoje = new Date();
-  hoje.setHours(0,0,0,0);
+  var hoje = new Date(); hoje.setHours(0,0,0,0);
+
   var filtrados = (vencClientesList || []).filter(function(item) {
-    var matchBusca = !busca ||
-      (item.nome || '').toLowerCase().indexOf(busca) > -1 ||
-      (item.observacao || '').toLowerCase().indexOf(busca) > -1;
+    var matchBusca = !busca || (item.nome || '').toLowerCase().indexOf(busca) > -1 || (item.observacao || '').toLowerCase().indexOf(busca) > -1;
     var status = 'PENDENTE';
     var dtRefStr = item.dataVencAte || item.dataVenc;
     if (dtRefStr) {
@@ -2641,6 +2595,7 @@ window.renderListaVencClientes = function() {
     }
     return matchBusca && matchCat && matchData;
   });
+
   if (filtrados.length === 0) {
     container.innerHTML = '<div class="card empty">Nenhum vencimento de cliente localizado.</div>';
     return;
@@ -2656,21 +2611,16 @@ window.renderListaVencClientes = function() {
       var dtObj = new Date(parts[2], parts[1] - 1, parts[0]);
       var diffDias = Math.ceil((dtObj - hoje) / (1000 * 60 * 60 * 24));
       if (diffDias < 0) {
-        badgeClass = 'b-falta';
-        statusTxt = 'VENCIDO (' + Math.abs(diffDias) + ' dias)';
+        badgeClass = 'b-falta'; statusTxt = 'VENCIDO (' + Math.abs(diffDias) + ' dias)';
       } else if (diffDias === 0) {
-        badgeClass = 'b-ok';
-        statusTxt = 'VENCE HOJE';
+        badgeClass = 'b-ok'; statusTxt = 'VENCE HOJE';
       } else if (diffDias <= 7) {
-        badgeClass = 'b-sobra';
-        statusTxt = 'QUASE VENCENDO (' + diffDias + ' dias)';
+        badgeClass = 'b-sobra'; statusTxt = 'QUASE VENCENDO (' + diffDias + ' dias)';
       } else {
-        badgeClass = 'b-ok';
-        statusTxt = 'PENDENTE (' + diffDias + ' dias)';
+        badgeClass = 'b-ok'; statusTxt = 'PENDENTE (' + diffDias + ' dias)';
       }
     } else {
-      badgeClass = 'b-sobra';
-      statusTxt = 'SEM DATA DEFINIDA';
+      badgeClass = 'b-sobra'; statusTxt = 'SEM DATA DEFINIDA';
     }
     var strVenc = 'Não informado';
     if (item.dataVenc && item.dataVencAte) {
@@ -2705,9 +2655,8 @@ window.renderListaVencClientes = function() {
     });
   }
 };
-// ============================================
+
 // ADMINISTRAÇÃO E GESTÃO
-// ============================================
 window.carregarSolicitacoesPendentes = function() {
   var loadEl = document.getElementById('load-admin');
   if (loadEl) loadEl.style.display = 'block';
@@ -2746,10 +2695,10 @@ window.carregarSolicitacoesPendentes = function() {
       '</div>';
     });
     container.innerHTML = html;
-    // Preenche automaticamente usuário/senha aleatórios em cada solicitação
     lista.forEach(function(item) { window.preencherCredenciais(item.id, item.nome, false); });
   }).getSolicitacoesPendentes();
 };
+
 window.aprovarSolicitacaoUser = function(id) {
   var u = document.getElementById('adm-u-' + id).value.trim();
   var p = document.getElementById('adm-p-' + id).value.trim();
@@ -2766,13 +2715,12 @@ window.aprovarSolicitacaoUser = function(id) {
   if (document.getElementById('p-ges-' + id).checked) perms.push('gestao');
   if (document.getElementById('p-venc-' + id).checked) perms.push('vencclientes');
   window.toast('Aprovando solicitação...', 'ok');
-  google.script.run
-    .withSuccessHandler(function(res) {
-      window.toast(res ? res.mensagem : 'Usuário aprovado!', (res && res.sucesso) ? 'ok' : 'er');
-      window.carregarSolicitacoesPendentes();
-    })
-    .aprovarSolicitacao(id, u, p, perms);
+  google.script.run.withSuccessHandler(function(res) {
+    window.toast(res ? res.mensagem : 'Usuário aprovado!', (res && res.sucesso) ? 'ok' : 'er');
+    window.carregarSolicitacoesPendentes();
+  }).aprovarSolicitacao(id, u, p, perms);
 };
+
 window.carregarUsuariosAdmin = function() {
   var loadEl = document.getElementById('load-users');
   if (loadEl) loadEl.style.display = 'block';
@@ -2803,6 +2751,7 @@ window.carregarUsuariosAdmin = function() {
     container.innerHTML = html;
   }).getUsuariosAtivos();
 };
+
 window.abrirModalPerfil = function(id) {
   var u = adminUsuariosList.find(function(item){ return String(item.id) === String(id); });
   if (!u) return;
@@ -2827,6 +2776,7 @@ window.abrirModalPerfil = function(id) {
   document.getElementById('prof-p-vencclientes').checked = perms.indexOf('vencclientes') > -1;
   document.getElementById('modal-perfil-user').style.display = 'flex';
 };
+
 window.alterarStatusAdmin = function(id, novoStatus) {
   if (!confirm('Deseja mudar o status deste usuário para ' + novoStatus + '?')) return;
   window.toast('Atualizando status...', 'ok');
@@ -2835,6 +2785,7 @@ window.alterarStatusAdmin = function(id, novoStatus) {
     window.carregarUsuariosAdmin();
   }).alterarStatusUsuario(id, novoStatus, usuarioLogado ? usuarioLogado.usuario : '');
 };
+
 window.resetarSenhaAdmin = function(id) {
   var novaSenha = prompt('Digite a nova senha para este usuário:');
   if (!novaSenha || !novaSenha.trim()) return;
@@ -2843,6 +2794,7 @@ window.resetarSenhaAdmin = function(id) {
     window.toast(res ? res.mensagem : 'Senha redefinida!', 'ok');
   }).resetarSenhaUsuario(id, novaSenha.trim(), usuarioLogado ? usuarioLogado.usuario : '');
 };
+
 window.carregarLogsAdmin = function() {
   var loadEl = document.getElementById('load-logs');
   if (loadEl) loadEl.style.display = 'block';
@@ -2864,6 +2816,7 @@ window.carregarLogsAdmin = function() {
     container.innerHTML = html;
   }).getLogsAuditoria();
 };
+
 safeAddEvent('btn-sync-fotos', 'click', function() {
   if (!confirm('Deseja sincronizar as fotos dos produtos com a base pública da internet agora?')) return;
   window.toast('Iniciando sincronização de fotos...', 'ok');

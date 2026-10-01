@@ -1641,17 +1641,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // FUNCTIONS CONTAGEM E CADASTRO
 window.buscarProdutosSupabase = async function() {
-  const { data, error } = await db
-    .from('produtos')
-    .select('*')
-    .limit(5000);
+  let todosProdutos = [];
+  let de = 0;
+  let limite = 1000;
+  let temMais = true;
 
-  if (error) {
-    console.error('Erro Supabase ao buscar produtos:', error);
-    throw error;
+  while (temMais) {
+    const { data, error } = await db
+      .from('produtos')
+      .select('*')
+      .range(de, de + limite - 1);
+
+    if (error) {
+      console.error('Erro Supabase ao buscar produtos:', error);
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+      todosProdutos = todosProdutos.concat(data);
+      de += limite;
+      if (data.length < limite) {
+        temMais = false;
+      }
+    } else {
+      temMais = false;
+    }
   }
 
-  return (data || []).map(function(p) {
+  return todosProdutos.map(function(p) {
     var cod = p.CÓDIGO || p.id || p.codigo || '';
     var nom = p.PRODUTO || p.nome || p.produto || '';
     var grp = p.GRUPO || p.grupo || p.categoria || 'GERAL';
@@ -2655,7 +2672,7 @@ window.renderListaVencClientes = function() {
   });
 
   if (filtrados.length === 0) {
-    container.innerHTML = '<div class="card empty">Nenum vencimento de cliente localizado.</div>';
+    container.innerHTML = '<div class="card empty">Nenhum vencimento de cliente localizado.</div>';
     return;
   }
   var exibidos = filtrados.slice(0, limiteVencCliExibicao);
@@ -2774,7 +2791,7 @@ window.aprovarSolicitacaoUser = function(id) {
   if (document.getElementById('p-venc-' + id).checked) perms.push('vencclientes');
   window.toast('Aprovando solicitação...', 'ok');
   google.script.run.withSuccessHandler(function(res) {
-    window.toast(res ? res.mensagem : 'Usuário approved!', (res && res.sucesso) ? 'ok' : 'er');
+    window.toast(res ? res.mensagem : 'Usuário aprovado!', (res && res.sucesso) ? 'ok' : 'er');
     window.carregarSolicitacoesPendentes();
   }).aprovarSolicitacao(id, u, p, perms);
 };

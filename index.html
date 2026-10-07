@@ -1673,7 +1673,7 @@ window.buscarProdutosSupabase = async function() {
     var nom = p.PRODUTO || p.nome || p.produto || '';
     var grp = p.GRUPO || p.grupo || p.categoria || 'GERAL';
     var bar = p.CÓDIGO_DE_BARRAS || p.cod_barra || p.codigo_de_barras || p.codBarra || '';
-    var sal = Number(p.SALDO || p.saldo || p.estoqueIdeal) || 0;
+    var sal = Number(String(p.SALDO || p.saldo || p.estoqueIdeal || 0).replace(',', '.')) || 0;
     var fot = p.FOTO_URL || p.foto_url || p.fotoUrl || '';
 
     return {
@@ -2549,7 +2549,7 @@ window.renderAbaSelecionadaNF = function() {
     }
     htmlFat += renderSecao('FICHARIO', fatDadosObj.fichario, '📁');
     htmlFat += renderSecao('EMAIL', fatDadosObj.email, '✉️');
-    htmlFat += renderSecao('CAIXA', fatDadosObj.caixaResponsavel, '🧑‍💼');
+    htmlFat += renderSecao('CAIXA', fatDadosObj.caixaResponsavel, '🧑‍‍💼');
     htmlFat += renderSecao('WHATSAPP', fatDadosObj.whatsapp, '💬');
     htmlFat += renderSecao('ENTREGA', fatDadosObj.entrega, '🚚');
     htmlFat += renderSecao('AVISOS', fatDadosObj.avisos, '⚠️');

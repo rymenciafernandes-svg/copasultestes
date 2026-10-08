@@ -1672,7 +1672,8 @@ window.buscarProdutosSupabase = async function() {
     var cod = p.CÓDIGO || p.id || p.codigo || '';
     var nom = p.PRODUTO || p.nome || p.produto || '';
     var grp = p.GRUPO || p.grupo || p.categoria || 'GERAL';
-    var bar = p.CÓDIGO_DE_BARRAS || p.cod_barra || p.codigo_de_barras || p.codBarra || '';
+    var rawBar = p['CÓDIGO DE BARRAS'] || p['CÓDIGO_DE_BARRAS'] || p.CÓDIGO_DE_BARRAS || p['CODIGO DE BARRAS'] || p['CODIGO_DE_BARRAS'] || p.cod_barra || p.codigo_de_barras || p.codBarra || '';
+    var bar = (rawBar !== null && rawBar !== undefined) ? String(rawBar).trim().replace(/\.0$/, '') : '';
     var sal = Number(String(p.SALDO || p.saldo || p.estoqueIdeal || 0).replace(',', '.')) || 0;
     var fot = p.FOTO_URL || p.foto_url || p.fotoUrl || '';
 
@@ -1927,11 +1928,11 @@ safeAddEvent('btn-add', 'click', async function() {
     var res = await db.from('produtos').upsert([itemData], { onConflict: 'id' });
     if (res.error) {
       await db.from('produtos').upsert([{
-        CÓDIGO: id,
-        PRODUTO: nome,
-        GRUPO: cat || 'GERAL',
-        CÓDIGO_DE_BARRAS: cb || '',
-        SALDO: ideal
+        "CÓDIGO": id,
+        "PRODUTO": nome,
+        "GRUPO": cat || 'GERAL',
+        "CÓDIGO DE BARRAS": cb || '',
+        "SALDO": ideal
       }]);
     }
     btn.disabled = false; btn.textContent = modoEdicao ? 'Salvar Edição' : 'Adicionar';
@@ -2549,7 +2550,7 @@ window.renderAbaSelecionadaNF = function() {
     }
     htmlFat += renderSecao('FICHARIO', fatDadosObj.fichario, '📁');
     htmlFat += renderSecao('EMAIL', fatDadosObj.email, '✉️');
-    htmlFat += renderSecao('CAIXA', fatDadosObj.caixaResponsavel, '🧑‍‍💼');
+    htmlFat += renderSecao('CAIXA', fatDadosObj.caixaResponsavel, '🧑‍💼');
     htmlFat += renderSecao('WHATSAPP', fatDadosObj.whatsapp, '💬');
     htmlFat += renderSecao('ENTREGA', fatDadosObj.entrega, '🚚');
     htmlFat += renderSecao('AVISOS', fatDadosObj.avisos, '⚠️');
@@ -2877,7 +2878,7 @@ window.carregarLogsAdmin = function() {
     if (loadEl) loadEl.style.display = 'none';
     var container = document.getElementById('admin-logs-list');
     if (!logs || logs.length === 0) {
-      container.innerHTML = '<div class="card empty">Nenhum log registrado no sistema.</div>';
+      container.innerHTML = '<div class="card empty">Nenum log registrado no sistema.</div>';
       return;
     }
     var html = '';

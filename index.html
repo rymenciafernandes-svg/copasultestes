@@ -23,7 +23,7 @@
 const SUPABASE_URL = 'https://kfacrxovtiiqifpunqxc.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_sMCWfr1XkJ8M73cZJYxi2A_kX4SK5Wg';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzG5HBzYyTPR5Z9tKYOtkSrvnrW7MHya_1fN8_Ivftbt4rm77RHluhPOXwsoHzONf6p/exec";
+const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyHuaHCq2nzRx_fy6FQrsIYnE1XmSEyi3JyvRC1o93Zg_jZa2qslmCtXoBSFuzJd4zI/exec";
 
 if (typeof google === 'undefined' || !google.script || !google.script.run) {
   window.google = window.google || {};
@@ -375,6 +375,28 @@ select.input option { background: #0b0d14; color: #fff; }
   body.printing-relatorio .rel-table td { color: #000000 !important; border-bottom: 1px solid #cbd5e1 !important; }
   body.printing-relatorio .rel-table-wrapper { max-height: none !important; overflow: visible !important; }
   body.printing-relatorio .badge-status { border: 1px solid #000000; color: #000000 !important; background: #ffffff !important; }
+}
+  /* 📱 CORREÇÃO PARA O TEXTO ESPREMIDO NA VERTICAL NO CELULAR */
+.item-lista,
+.produto-item {
+    flex-wrap: wrap !important;
+}
+
+.info-texto,
+.produto-info {
+    min-width: 60% !important;
+    flex: 1 1 auto !important;
+    word-break: normal !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+}
+
+.acoes-item,
+.produto-acoes,
+.botoes-qtd {
+    flex: 1 1 100% !important;
+    justify-content: flex-end !important;
+    margin-top: 12px !important;
 }
 </style>
 <base target="_blank">

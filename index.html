@@ -376,27 +376,35 @@ select.input option { background: #0b0d14; color: #fff; }
   body.printing-relatorio .rel-table-wrapper { max-height: none !important; overflow: visible !important; }
   body.printing-relatorio .badge-status { border: 1px solid #000000; color: #000000 !important; background: #ffffff !important; }
 }
-  /* 📱 CORREÇÃO PARA O TEXTO ESPREMIDO NA VERTICAL NO CELULAR */
-.item-lista,
-.produto-item {
+
+/* 📱 CORREÇÃO DEFINITIVA PARA O TEXTO ESPREMIDO NO TELEMÓVEL */
+@media (max-width: 600px) {
+  .prod-item {
     flex-wrap: wrap !important;
-}
-
-.info-texto,
-.produto-info {
-    min-width: 60% !important;
-    flex: 1 1 auto !important;
-    word-break: normal !important;
-    overflow-wrap: break-word !important;
+    align-items: flex-start !important;
+    padding: 12px 0 !important;
+  }
+  .prod-thumb {
+    width: 44px !important;
+    height: 44px !important;
+    flex-shrink: 0 !important;
+  }
+  .prod-info {
+    flex: 1 1 calc(100% - 60px) !important;
+    min-width: 0 !important;
+  }
+  .prod-name {
+    font-size: 13px !important;
     white-space: normal !important;
-}
-
-.acoes-item,
-.produto-acoes,
-.botoes-qtd {
+    word-break: break-word !important;
+  }
+  .prod-counter {
     flex: 1 1 100% !important;
+    width: 100% !important;
     justify-content: flex-end !important;
-    margin-top: 12px !important;
+    margin-top: 10px !important;
+    padding-left: 56px !important;
+  }
 }
 </style>
 <base target="_blank">
@@ -797,13 +805,27 @@ select.input option { background: #0b0d14; color: #fff; }
     </div>
     <div class="rel-table-wrapper">
       <table class="rel-table" id="res-tabela">
-        <thead><tr><th>Produto</th><th>Ideal</th><th>Real</th><th>Dif.</th><th>Status</th></tr></thead>
+        <thead>
+          <tr id="rel-thead-tr"><th>Produto</th><th>Ideal</th><th>Real</th><th>Dif.</th><th>Status</th></tr>
+        </thead>
         <tbody id="rel-tbody"></tbody>
       </table>
     </div>
-    <button class="btn-print-pdf no-print" id="btn-print-relatorio">📄 Baixar PDF / Imprimir</button>
+    <div id="rel-footer-botoes" class="no-print" style="margin-top:14px; display:flex; flex-direction:column; gap:8px;">
+      <button class="btn-print-pdf no-print" id="btn-print-relatorio">📄 Baixar PDF / Imprimir</button>
+      <div class="extra-rel-buttons row no-print" style="margin-top:4px;">
+        <button class="btn" onclick="window.abrirModalAdicionarItem()" style="flex:1;min-width:120px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);font-size:12px">➕ Adicionar Item</button>
+        <button class="btn" id="btn-toggle-modo-edicao" onclick="window.ativarModoEdicaoRel(true)" style="flex:1;min-width:120px;background:linear-gradient(135deg,#eab308,#ca8a04);color:#000;font-size:12px;font-weight:800;">✏️ Editar Relatório</button>
+        <button class="btn" onclick="window.recalcularRelatorioOriginal()" style="flex:1;min-width:120px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);font-size:12px">🔄 Recalcular com Cache</button>
+      </div>
+      <div id="rel-edit-actions" class="row no-print" style="display:none; margin-top:4px;">
+        <button class="btn" onclick="window.salvarEdicaoCompletaRelatorio()" style="flex:2;background:linear-gradient(135deg,#10b981,#059669);font-size:13px;font-weight:800;">💾 Salvar Alterações</button>
+        <button class="btn" onclick="window.ativarModoEdicaoRel(false)" style="flex:1;background:rgba(239,68,68,0.2);color:#f87171;border:1px solid rgba(239,68,68,0.3);font-size:13px;font-weight:800;">❌ Cancelar</button>
+      </div>
+    </div>
   </div>
 </div>
+
 <div class="modal-cam" id="modal-add-item">
   <div class="modal-cam-content" style="max-width:560px;text-align:left;height:80vh;display:flex;flex-direction:column;padding:20px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0">
@@ -813,8 +835,11 @@ select.input option { background: #0b0d14; color: #fff; }
       </div>
       <button class="del" id="btn-close-add-item" style="width:36px;height:36px">✕</button>
     </div>
-    <div class="input-group" style="margin-bottom:12px;flex-shrink:0">
-      <input class="input" id="search-add-item" placeholder="Buscar por Nome, ID ou Cód...">
+    <div class="input-group" style="margin-bottom:12px;flex-shrink:0;width:100%;display:flex;gap:8px;">
+      <input class="input" id="search-add-item" placeholder="Buscar por Nome, ID ou Cód..." style="flex:1;">
+      <button type="button" class="btn-cam" id="btn-cam-add-item" onclick="window.abrirCameraParaAdicionarItem()" title="Ler Código de Barras" style="background:#10b981;border:none;border-radius:12px;padding:0 14px;font-size:20px;cursor:pointer;color:white;display:flex;align-items:center;justify-content:center;height:44px;flex-shrink:0;">
+        📷
+      </button>
     </div>
     <div id="lista-add-item" style="flex:1;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px"></div>
   </div>
@@ -1009,8 +1034,15 @@ select.input option { background: #0b0d14; color: #fff; }
 </div>
 
 <script>
-  var modoEdicao = false;
-  
+  // ==========================================
+  // CÂMARA PARA ADICIONAR ITEM
+  // ==========================================
+  window.abrirCameraParaAdicionarItem = function() {
+    window.abrirScannerAoVivo('search-add-item', function() {
+      window.renderListaAdicaoItem();
+    });
+  };
+
 window.enviarAlertaValidade = function() {
   if(!confirm("Deseja enviar o relatório de validades para os e-mails cadastrados agora?")) return;
   alert("O relatório está sendo gerado e enviado. Isso pode levar alguns segundos...");
@@ -1048,6 +1080,8 @@ var usuarioLogado = null;
 var activeTargetInputId = '';
 var activeScanCallback = null;
 var modoEdicao = false;
+var emModoEdicaoRel = false;
+var itensEdicaoRelatorio = [];
 var produtosContagem = [];
 var contagensAtuais = {};
 var limiteExibicao = 50;
@@ -1292,7 +1326,6 @@ window.executarLogin = async function() {
       return;
     }
 
-    // Login Bemsucedido
     usuarioLogado = usuario;
     localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
 
@@ -1371,7 +1404,6 @@ function carregarSistemaOtimizado() {
 document.addEventListener('DOMContentLoaded', function() {
   carregarSistemaOtimizado();
 
-  // Restaurar sessão de login salva
   const sessaoGuardada = localStorage.getItem('usuarioLogado');
   if (sessaoGuardada) {
     try {
@@ -1386,7 +1418,6 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch(e) { console.error('Erro ao restaurar sessão:', e); }
   }
 
-  // ABRIR E FECHAR O MENU LATERAL (DRAWER)
   safeAddEvent('btn-open-tools', 'click', function() {
     document.getElementById('drawer-tools').style.display = 'flex';
   });
@@ -2172,44 +2203,130 @@ window.exibirModalRelatorioIndex = function(idx) {
   }
 };
 
+// ============================================
+// SISTEMA DE EDIÇÃO DE RELATÓRIO COMPLETO
+// ============================================
 window.exibirModalRelatorio = function(resumo) {
   if (!resumo) return;
   relatorioAtivoAdicao = resumo;
+  emModoEdicaoRel = false;
+  itensEdicaoRelatorio = JSON.parse(JSON.stringify(resumo.itens || []));
   document.getElementById('rel-title').textContent = 'Relatório de ' + resumo.dataHora;
   document.getElementById('rel-sub').textContent = 'Responsável: ' + resumo.responsavel;
-  document.getElementById('rel-tot-itens').textContent = resumo.totalItens || 0;
-  document.getElementById('rel-tot-falta').textContent = resumo.itensFalta || 0;
-  document.getElementById('rel-tot-sobra').textContent = resumo.itensSobra || 0;
-  document.getElementById('rel-tot-ok').textContent = resumo.itensOk || 0;
+  window.renderizarTabelaRelatorio();
+  var modal = document.getElementById('modal-relatorio');
+  if (modal) modal.style.display = 'flex';
+};
+
+window.renderizarTabelaRelatorio = function() {
+  if (!relatorioAtivoAdicao) return;
+  var theadTr = document.getElementById('rel-thead-tr');
+  if (theadTr) {
+    theadTr.innerHTML = emModoEdicaoRel 
+      ? '<th>Produto</th><th>Ideal</th><th style="text-align:center;">Real (Editável)</th><th>Dif.</th><th>Status</th><th style="text-align:center;">Ação</th>'
+      : '<th>Produto</th><th>Ideal</th><th>Real</th><th>Dif.</th><th>Status</th>';
+  }
+
   var tbody = document.getElementById('rel-tbody');
   var html = '';
-  (resumo.itens || []).forEach(function(item) {
-    var diff = item.diferenca;
+  var totalItens = (itensEdicaoRelatorio || []).length;
+  var comFalta = 0, comSobra = 0, confOk = 0;
+
+  (itensEdicaoRelatorio || []).forEach(function(item, index) {
+    var ideal = parseInt(item.estoqueIdeal) || 0;
+    var real = parseInt(item.qtdContada) || 0;
+    var diff = real - ideal;
+    item.diferenca = diff;
+
     var statusClass = 'b-ok', statusTxt = 'OK';
-    if (diff < 0) { statusClass = 'b-falta'; statusTxt = 'FALTA (' + diff + ')'; }
-    else if (diff > 0) { statusClass = 'b-sobra'; statusTxt = 'SOBRA (+' + diff + ')'; }
-    html += '<tr>' +
+    if (diff < 0) { statusClass = 'b-falta'; statusTxt = 'FALTA (' + diff + ')'; comFalta++; }
+    else if (diff > 0) { statusClass = 'b-sobra'; statusTxt = 'SOBRA (+' + diff + ')'; comSobra++; }
+    else { confOk++; }
+
+    html += '<tr id="rel-tr-' + index + '">' +
       '<td style="font-weight:700;color:#fff;">' + item.nome + '</td>' +
-      '<td>' + item.estoqueIdeal + '</td>' +
-      '<td>' + item.qtdContada + '</td>' +
-      '<td>' + (diff > 0 ? '+' + diff : diff) + '</td>' +
-      '<td><span class="badge-status ' + statusClass + '">' + statusTxt + '</span></td>' +
+      '<td>' + ideal + '</td>' +
+      (emModoEdicaoRel 
+        ? '<td style="text-align:center;"><input type="number" min="0" value="' + real + '" oninput="window.atualizarQtdItemEdicao(' + index + ', this.value)" style="width:72px;padding:6px;border-radius:8px;border:1px solid #10b981;background:#0b0d14;color:#fff;text-align:center;font-weight:800;font-size:14px;"></td>'
+        : '<td>' + real + '</td>') +
+      '<td id="rel-diff-' + index + '" style="font-weight:800;color:' + (diff < 0 ? '#f87171' : (diff > 0 ? '#fbbf24' : '#34d399')) + '">' + (diff > 0 ? '+' + diff : diff) + '</td>' +
+      '<td><span id="rel-badge-' + index + '" class="badge-status ' + statusClass + '">' + statusTxt + '</span></td>' +
+      (emModoEdicaoRel ? '<td style="text-align:center;"><button class="del" onclick="window.removerItemEdicao(' + index + ')" title="Remover item" style="width:28px;height:28px;font-size:13px;padding:0;margin:0 auto;">✕</button></td>' : '') +
     '</tr>';
   });
   tbody.innerHTML = html;
-  var modal = document.getElementById('modal-relatorio');
-  if (modal) {
-    var btnExtraContainer = modal.querySelector('.extra-rel-buttons');
-    if (!btnExtraContainer) {
-      btnExtraContainer = document.createElement('div');
-      btnExtraContainer.className = 'extra-rel-buttons row no-print';
-      btnExtraContainer.style.marginTop = '12px';
-      btnExtraContainer.innerHTML = '<button class="btn" onclick="window.abrirModalAdicionarItem()" style="flex:1;background:linear-gradient(135deg,#3b82f6,#1d4ed8);font-size:12px">➕ Adicionar Item</button>' +
-        '<button class="btn" onclick="window.recalcularRelatorioOriginal()" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6d28d9);font-size:12px">🔄 Recalcular com Cache</button>';
-      modal.querySelector('.modal-cam-content').appendChild(btnExtraContainer);
-    }
-    modal.style.display = 'flex';
+
+  document.getElementById('rel-tot-itens').textContent = totalItens;
+  document.getElementById('rel-tot-falta').textContent = comFalta;
+  document.getElementById('rel-tot-sobra').textContent = comSobra;
+  document.getElementById('rel-tot-ok').textContent = confOk;
+
+  var bExtra = document.querySelector('.extra-rel-buttons');
+  var bEdit = document.getElementById('rel-edit-actions');
+  if (bExtra) bExtra.style.display = emModoEdicaoRel ? 'none' : 'flex';
+  if (bEdit) bEdit.style.display = emModoEdicaoRel ? 'flex' : 'none';
+};
+
+window.ativarModoEdicaoRel = function(ligar) {
+  emModoEdicaoRel = ligar;
+  if (!ligar && relatorioAtivoAdicao) {
+    itensEdicaoRelatorio = JSON.parse(JSON.stringify(relatorioAtivoAdicao.itens || []));
   }
+  window.renderizarTabelaRelatorio();
+};
+
+window.atualizarQtdItemEdicao = function(index, val) {
+  if (!itensEdicaoRelatorio || !itensEdicaoRelatorio[index]) return;
+  var v = parseInt(val);
+  var qtd = isNaN(v) ? 0 : Math.max(0, v);
+  itensEdicaoRelatorio[index].qtdContada = qtd;
+  var ideal = parseInt(itensEdicaoRelatorio[index].estoqueIdeal) || 0;
+  var diff = qtd - ideal;
+  itensEdicaoRelatorio[index].diferenca = diff;
+
+  var diffEl = document.getElementById('rel-diff-' + index);
+  var badgeEl = document.getElementById('rel-badge-' + index);
+  if (diffEl) {
+    diffEl.textContent = diff > 0 ? '+' + diff : diff;
+    diffEl.style.color = diff < 0 ? '#f87171' : (diff > 0 ? '#fbbf24' : '#34d399');
+  }
+  if (badgeEl) {
+    badgeEl.className = 'badge-status ' + (diff < 0 ? 'b-falta' : (diff > 0 ? 'b-sobra' : 'b-ok'));
+    badgeEl.textContent = diff < 0 ? 'FALTA (' + diff + ')' : (diff > 0 ? 'SOBRA (+' + diff + ')' : 'OK');
+  }
+
+  var comFalta = 0, comSobra = 0, confOk = 0;
+  itensEdicaoRelatorio.forEach(function(it) {
+    if (it.diferenca < 0) comFalta++;
+    else if (it.diferenca > 0) comSobra++;
+    else confOk++;
+  });
+  document.getElementById('rel-tot-falta').textContent = comFalta;
+  document.getElementById('rel-tot-sobra').textContent = comSobra;
+  document.getElementById('rel-tot-ok').textContent = confOk;
+};
+
+window.removerItemEdicao = function(index) {
+  if (!itensEdicaoRelatorio || !itensEdicaoRelatorio[index]) return;
+  itensEdicaoRelatorio.splice(index, 1);
+  window.renderizarTabelaRelatorio();
+};
+
+window.salvarEdicaoCompletaRelatorio = function() {
+  if (!relatorioAtivoAdicao) return;
+  if (!confirm('Deseja salvar as alterações deste relatório com ' + itensEdicaoRelatorio.length + ' itens?')) return;
+  window.toast('Salvando relatório completo...', 'ok');
+  var respNome = usuarioLogado ? usuarioLogado.nome : (relatorioAtivoAdicao.responsavel || 'Administrador');
+  google.script.run.withSuccessHandler(function(res) {
+    if (res && res.sucesso !== false) {
+      window.toast(res.mensagem || 'Relatório atualizado com sucesso!', 'ok');
+      emModoEdicaoRel = false;
+      document.getElementById('modal-relatorio').style.display = 'none';
+      window.carregarHistorico();
+    } else {
+      window.toast((res && res.mensagem) ? res.mensagem : 'Erro ao salvar relatório.', 'er');
+    }
+  }).salvarEdicaoCompletaRelatorio(relatorioAtivoAdicao.dataHora, itensEdicaoRelatorio, respNome);
 };
 
 safeAddEvent('btn-print-relatorio', 'click', function() {

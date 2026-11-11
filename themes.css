@@ -52,3 +52,16 @@ body { background:var(--ui-bg); background-image:radial-gradient(ellipse at 50% 
 .swatch-teal { background:#162a30; }.swatch-teal i:first-child { background:#20c9b2;width:65%; }.swatch-teal i:nth-child(2) { background:#49bff4;width:45%; }.swatch-teal i:last-child { background:#315059;width:85%; }
 .swatch-amber { background:#28282d; }.swatch-amber i:first-child { background:#f4b544;width:65%; }.swatch-amber i:nth-child(2) { background:#c3a4f7;width:45%; }.swatch-amber i:last-child { background:#49434a;width:85%; }
 @media(max-width:650px) { .theme-settings { margin:16px auto; padding:18px; }.theme-options { grid-template-columns:1fr; }.theme-choice { display:grid; grid-template-columns:90px 1fr; align-items:center; }.theme-swatch { grid-row:span 3; height:72px; padding:12px; }.theme-choice strong,.theme-choice small,.theme-selected { grid-column:2; } }
+
+/* Cartões da página inicial: somente aparência, sem alterar navegação ou permissões. */
+#p-home .menu-btn { gap:15px; padding:15px 18px !important; min-height:78px !important; transition:background .18s,border-color .18s,box-shadow .18s; }
+#p-home .home-action-icon { display:flex; align-items:center; justify-content:center; width:45px; height:45px; flex:0 0 45px; background:var(--ui-accent-soft); border:1px solid var(--ui-border); border-radius:11px; color:var(--ui-primary); }
+#p-home .menu-btn.b2 .home-action-icon,#p-home .menu-btn.b4 .home-action-icon { color:var(--ui-secondary); }
+#p-home .home-action-icon svg { width:22px; height:22px; color:inherit !important; }
+#p-home .home-action-copy { display:flex; flex-direction:column; flex:1; min-width:0; gap:4px; }
+#p-home .home-action-title { font-size:14px; font-weight:650; line-height:1.3; color:var(--ui-text); }
+#p-home .home-action-description { font-size:12px; font-weight:400; line-height:1.35; color:var(--ui-muted); }
+#p-home .home-action-arrow { display:flex; align-items:center; justify-content:center; flex:0 0 20px; color:var(--ui-muted); }
+#p-home .home-action-arrow svg { width:18px; height:18px; color:inherit !important; }
+#p-home .menu-btn:hover .home-action-arrow { color:var(--ui-primary); }
+@media(max-width:600px){#p-home .menu-btn { min-height:72px !important; padding:12px 13px !important; gap:12px; }#p-home .home-action-icon { width:40px; height:40px; flex-basis:40px; }#p-home .home-action-title { font-size:13px; }#p-home .home-action-description { font-size:11px; }}

@@ -412,6 +412,54 @@ select.input option { background: #0b0d14; color: #fff; }
 .stock-line-icon{display:inline-flex;vertical-align:-0.18em;align-items:center;justify-content:center;width:1.15em;height:1.15em;flex:none;margin-right:.3em;color:inherit}.stock-line-icon svg{display:block;width:100%;height:100%}
 </style>
 <script src="icons.js" defer></script>
+<style>
+
+/* COPASUL CORPORATE UI — ETAPA 1: HOME E MENU LATERAL
+   Estilos isolados; não alteram regras de negócio ou permissões. */
+:root { --cop-green:#159957; --cop-green-light:#35c782; --cop-graphite:#101715; --cop-panel:#17201d; --cop-border:#2b3832; --cop-muted:#9aa9a1; }
+body { background:#0e1412; background-image:radial-gradient(ellipse at 50% -20%,#1b2b23 0%,#0e1412 58%); color:#edf4ef; }
+#p-home .home-top { padding:48px 12px 30px; }
+#p-home .logo-wrapper { width:94px; height:94px; margin-bottom:22px; }
+#p-home .logo-bg { background:#166b43; border-radius:22px; filter:blur(18px); opacity:.18; }
+#p-home .logo { width:88px; height:88px; border-radius:19px; box-shadow:0 7px 24px rgba(0,0,0,.25); }
+#p-home .greet { color:#91aa9a; font-size:12px; font-weight:600; letter-spacing:.07em; margin-bottom:7px; }
+#p-home .home-title { background:none; -webkit-text-fill-color:#edf4ef; color:#edf4ef; font-size:25px; font-weight:700; letter-spacing:-.035em; }
+#p-home .menu { max-width:960px; margin:0 auto; gap:11px; padding:4px 8px 36px; }
+#p-home .menu-btn, #p-home .menu-btn.b1, #p-home .menu-btn.b2, #p-home .menu-btn.b3, #p-home .menu-btn.b4 {
+  background:#18211d; color:#e8f1ea; border:1px solid #2b3931; border-radius:12px;
+  box-shadow:none; min-height:66px; padding:17px 22px; font-size:14px; font-weight:650;
+  transition:background .18s,border-color .18s,box-shadow .18s;
+}
+#p-home .menu-btn:hover { transform:none; filter:none; background:#20352a; border-color:#36885d; box-shadow:0 0 0 1px rgba(53,199,130,.12); }
+#p-home .menu-btn:focus-visible, .drawer-content button:focus-visible, .drawer-content .tool-link:focus-visible { outline:2px solid #42d68b; outline-offset:3px; }
+#p-home .menu-btn svg { color:#42ca84; width:21px; height:21px; }
+#p-home .btn-hamburger { background:#18211d; border:1px solid #34463b; box-shadow:none; color:#d9eee0; }
+#p-home .btn-hamburger:hover { transform:none; background:#22392c; }
+.drawer-content { background:#121a17; border-right:1px solid #304038; width:350px; max-width:90%; padding:24px 17px; gap:9px; scrollbar-width:thin; scrollbar-color:#3b5043 transparent; }
+.drawer-content::-webkit-scrollbar { width:5px; }
+.drawer-content::-webkit-scrollbar-thumb { background:#3b5043; border-radius:8px; }
+.drawer-header { border-bottom:1px solid #2c3a32; padding:0 5px 19px; margin-bottom:10px; }
+.drawer-title { color:#e5f4e9; font-weight:700; font-size:15px; }
+.drawer-title svg { stroke:#39c980; }
+.drawer-content .tool-link, .drawer-content .accordion-header {
+  background:#19231e !important; border:1px solid #2b3931 !important;
+  color:#dce9df !important; border-radius:10px; box-shadow:none !important;
+  padding:14px 15px; min-height:53px; font-size:13px; font-weight:600;
+  transition:background .18s,border-color .18s,color .18s;
+}
+.drawer-content .tool-link:hover, .drawer-content .accordion-header:hover { background:#23392b !important; border-color:#3d8d61 !important; color:#f4fff7 !important; transform:none; box-shadow:none !important; }
+.drawer-content .tool-link svg, .drawer-content .accordion-header svg { color:#5acb91 !important; width:18px; height:18px; }
+.drawer-content .accordion-content { border-left:1px solid #355441; margin-left:12px; padding-left:11px; }
+.drawer-content .sub-link { background:transparent !important; border-color:transparent !important; min-height:42px; padding:10px 12px; }
+.drawer-content .chevron { color:#78b999 !important; }
+.drawer-content [data-nav="logout"], .drawer-content [id*="logout"] { color:#e4a6a6 !important; }
+@media(max-width:600px) {
+ #p-home .home-top { padding-top:36px; }
+ #p-home .menu { padding-left:0; padding-right:0; }
+ #p-home .menu-btn { min-height:60px !important; padding:15px 17px !important; }
+ .drawer-content { width:330px; max-width:88vw; }
+}
+</style>
 </head>
 <body>
 <div class="app">

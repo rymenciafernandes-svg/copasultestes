@@ -567,7 +567,11 @@ body { background:#0e1412; background-image:radial-gradient(ellipse at 50% -20%,
 <div class="oc-field"><label for="oc-valor">Valor total (R$) — opcional</label><input id="oc-valor" type="number" min="0" step="0.01"></div>
 <div class="oc-field full"><label for="oc-produtos">Produtos, quantidades e observações</label><textarea id="oc-produtos" maxlength="3000" placeholder="Descreva os itens da ordem de compra"></textarea></div>
 <div class="oc-field"><label for="oc-remetente">E-mail de quem envia</label><input id="oc-remetente" type="email" required autocomplete="off" placeholder="seu.email@empresa.com.br"></div>
-<div class="oc-field"><label for="oc-destinatarios">E-mail de quem recebe</label><input id="oc-destinatarios" required placeholder="destinatario@empresa.com.br (separe vários por vírgula)"></div>
+<div class="oc-field oc-recipient-field"><label for="oc-destinatario-principal">E-mail de quem recebe</label>
+<input id="oc-destinatarios" type="hidden" aria-hidden="true">
+<div id="oc-destinatarios-lista"><div class="oc-recipient-row"><input id="oc-destinatario-principal" class="oc-recipient-input" type="email" required autocomplete="off" placeholder="destinatario@empresa.com.br" aria-label="Destinatário 1"></div></div>
+<button type="button" id="oc-adicionar-destinatario" class="oc-add-recipient">+ Adicionar outro e-mail</button>
+<small class="oc-recipient-help">Todos os destinatários receberão a mesma ordem de compra e o mesmo PDF.</small></div>
 <div class="oc-field full"><label for="oc-assunto">Assunto</label><input id="oc-assunto" required maxlength="200" placeholder="Ordem de compra — número"></div>
 <div class="oc-field full"><label for="oc-mensagem">Mensagem do e-mail</label><textarea id="oc-mensagem" maxlength="5000" placeholder="Prezados, encaminho a ordem de compra em anexo..."></textarea></div>
 <div class="oc-field full"><label for="oc-pdf">Anexar PDF (máximo 5 MB)</label><input id="oc-pdf" type="file" accept="application/pdf,.pdf" required></div>
@@ -3157,6 +3161,78 @@ safeAddEvent('btn-sync-fotos', 'click', function() {
     window.toast(res ? res.mensagem : 'Fotos sincronizadas!', (res && res.sucesso) ? 'ok' : 'er');
   }).sincronizarFotosEmLote();
 });
+</script>
+
+<!-- ORDENS DE COMPRA: campos individuais de destinatários; API original permanece inalterada -->
+<style>
+#p-ordens-compra .oc-recipient-field {min-width:0}
+#p-ordens-compra .oc-recipient-row {display:flex;align-items:center;gap:8px;margin-bottom:9px}
+#p-ordens-compra .oc-recipient-input {flex:1;min-width:0;width:100%;padding:12px 14px;border:1px solid #3c4d65;border-radius:10px;background:#141c29;color:#eef3ff;font:inherit}
+#p-ordens-compra .oc-recipient-input:focus {outline:2px solid #3b82f6;outline-offset:1px}
+#p-ordens-compra .oc-add-recipient {padding:10px 14px;border:1px dashed #6086c8;border-radius:10px;background:rgba(59,130,246,.09);color:#a9c9ff;font:inherit;font-weight:700;cursor:pointer;text-align:left}
+#p-ordens-compra .oc-add-recipient:hover {background:rgba(59,130,246,.18)}
+#p-ordens-compra .oc-remove-recipient {flex:0 0 auto;border:1px solid rgba(248,113,113,.45);border-radius:9px;background:rgba(239,68,68,.12);color:#fca5a5;padding:10px 12px;font:inherit;cursor:pointer}
+#p-ordens-compra .oc-recipient-help {display:block;margin-top:8px;color:#a5b4c8;font-size:11px;line-height:1.5}
+</style>
+<script>
+(function () {
+  'use strict';
+  function iniciarDestinatariosOC() {
+    var lista = document.getElementById('oc-destinatarios-lista');
+    var campoOriginal = document.getElementById('oc-destinatarios');
+    var adicionar = document.getElementById('oc-adicionar-destinatario');
+    var formulario = document.getElementById('oc-form');
+    if (!lista || !campoOriginal || !adicionar || !formulario) return;
+    var MAX = 20;
+    function campos() { return Array.from(lista.querySelectorAll('.oc-recipient-input')); }
+    function sincronizar() {
+      var enderecos = campos().map(function (el) { return el.value.trim(); }).filter(Boolean);
+      campoOriginal.value = enderecos.join(', ');
+      adicionar.disabled = campos().length >= MAX;
+      adicionar.title = adicionar.disabled ? 'Limite de 20 destinatários' : '';
+    }
+    function acrescentar(valor) {
+      if (campos().length >= MAX) return;
+      var linha = document.createElement('div');
+      linha.className = 'oc-recipient-row';
+      var entrada = document.createElement('input');
+      entrada.type = 'email';
+      entrada.className = 'oc-recipient-input';
+      entrada.required = true;
+      entrada.autocomplete = 'off';
+      entrada.placeholder = 'outro.destinatario@empresa.com.br';
+      entrada.value = valor || '';
+      entrada.setAttribute('aria-label', 'Destinatário adicional');
+      entrada.addEventListener('input', sincronizar);
+      var remover = document.createElement('button');
+      remover.type = 'button';
+      remover.className = 'oc-remove-recipient';
+      remover.textContent = 'Remover';
+      remover.setAttribute('aria-label', 'Remover este destinatário');
+      remover.addEventListener('click', function () { linha.remove(); sincronizar(); });
+      linha.appendChild(entrada);
+      linha.appendChild(remover);
+      lista.appendChild(linha);
+      sincronizar();
+      if (!valor) entrada.focus();
+    }
+    campos()[0].addEventListener('input', sincronizar);
+    adicionar.addEventListener('click', function () { acrescentar(''); });
+    formulario.addEventListener('submit', function (evento) {
+      var enderecos = campos().map(function (el) { return el.value.trim().toLowerCase(); });
+      if (new Set(enderecos).size !== enderecos.length) {
+        evento.preventDefault();
+        evento.stopImmediatePropagation();
+        alert('Há e-mails repetidos. Remova os destinatários duplicados antes de salvar.');
+        return;
+      }
+      sincronizar();
+    }, true);
+    sincronizar();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciarDestinatariosOC);
+  else iniciarDestinatariosOC();
+})();
 </script>
 </body>
 </html>

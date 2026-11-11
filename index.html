@@ -460,6 +460,8 @@ body { background:#0e1412; background-image:radial-gradient(ellipse at 50% -20%,
  .drawer-content { width:330px; max-width:88vw; }
 }
 </style>
+<link rel="stylesheet" href="themes.css">
+<script src="themes.js" defer></script>
 </head>
 <body>
 <div class="app">
@@ -531,6 +533,22 @@ body { background:#0e1412; background-image:radial-gradient(ellipse at 50% -20%,
     <button class="menu-btn b3" data-nav="relatorio" style="display:none">Dash de Relatorio</button>
     <button class="menu-btn b4" data-nav="notif" style="display:none">Dash de Notificacoes</button>
   </div>
+</div>
+
+<!-- Preferências de aparência: não modifica permissões nem dados operacionais -->
+<div id="p-configuracoes" class="page">
+  <div class="page-header"><button class="back" data-nav="home">Voltar</button><div class="page-title">Configurações do Sistema</div></div>
+  <section class="theme-settings" aria-labelledby="theme-heading">
+    <div class="theme-eyebrow">PREFERÊNCIAS PESSOAIS</div>
+    <h2 id="theme-heading">Aparência do sistema</h2>
+    <p>Escolha a identidade visual que combina com você. Sua preferência fica salva neste navegador, separadamente para cada usuário.</p>
+    <div class="theme-options" role="group" aria-label="Escolha de tema">
+      <button type="button" class="theme-choice" data-theme-choice="blue" aria-pressed="false"><span class="theme-swatch swatch-blue"><i></i><i></i><i></i></span><strong>Azul Executivo</strong><small>Azul e roxo</small><span class="theme-selected">Selecionado</span></button>
+      <button type="button" class="theme-choice" data-theme-choice="teal" aria-pressed="false"><span class="theme-swatch swatch-teal"><i></i><i></i><i></i></span><strong>Turquesa Moderno</strong><small>Turquesa e azul</small><span class="theme-selected">Selecionado</span></button>
+      <button type="button" class="theme-choice" data-theme-choice="amber" aria-pressed="false"><span class="theme-swatch swatch-amber"><i></i><i></i><i></i></span><strong>Âmbar Premium</strong><small>Âmbar e grafite</small><span class="theme-selected">Selecionado</span></button>
+    </div>
+    <p class="theme-note">A alteração é aplicada imediatamente. Não interfere em estoques, relatórios ou permissões.</p>
+  </section>
 </div>
 
 <!-- TELA GERADOR DE CARTAZ DE PROMOÇÃO -->
@@ -1081,6 +1099,7 @@ body { background:#0e1412; background-image:radial-gradient(ellipse at 50% -20%,
     <div class="tool-link" data-nav="historico" data-perm="relatorio" style="border-color:rgba(56,189,248,0.3);color:#38bdf8;"><span>📄</span> Histórico de Relatórios Salvos</div>
     <div class="tool-link" data-nav="validade" data-perm="validade" style="border-color:rgba(245,158,11,0.3);color:#fbbf24;"><span>📅</span> Controle de Validades</div>
     <div class="tool-link" data-nav="cartaz" data-perm="cartaz" style="border-color:rgba(236,72,153,0.3);color:#f472b6;"><span>🏷️</span> Gerador de Cartaz de Promoção</div>
+    <button type="button" class="tool-link theme-settings-link" data-nav="configuracoes"><span class="theme-gear" aria-hidden="true">⚙</span> Configurações do Sistema</button>
     <div class="tool-link" id="btn-logout" style="margin-top:auto;border-color:rgba(239,68,68,0.3);color:#f87171;cursor:pointer"><span>🚪</span> Sair da Conta</div>
   </div>
 </div>
@@ -1380,6 +1399,7 @@ window.executarLogin = async function() {
 
     usuarioLogado = usuario;
     localStorage.setItem('usuarioLogado', JSON.stringify(usuario));
+    if (window.copasulThemes) window.copasulThemes.loadForUser(usuario);
 
     var primeiroNome = usuarioLogado.nome ? usuarioLogado.nome.split(' ')[0] : 'Usuário';
     document.getElementById('user-greet').textContent = 'Olá, ' + primeiroNome + '!';
@@ -1460,6 +1480,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (sessaoGuardada) {
     try {
       usuarioLogado = JSON.parse(sessaoGuardada);
+      if (window.copasulThemes) window.copasulThemes.loadForUser(usuarioLogado);
       var primeiroNome = usuarioLogado.nome ? usuarioLogado.nome.split(' ')[0] : 'Usuário';
       var userGreetEl = document.getElementById('user-greet');
       if (userGreetEl) userGreetEl.textContent = 'Olá, ' + primeiroNome + '!';
@@ -1713,6 +1734,7 @@ document.addEventListener('DOMContentLoaded', function() {
   safeAddEvent('btn-logout', 'click', function(){
     usuarioLogado = null; 
     localStorage.removeItem('usuarioLogado');
+    if (window.copasulThemes) window.copasulThemes.resetForLogout();
     document.getElementById('login-user').value = ''; 
     document.getElementById('login-pass').value = '';
     document.getElementById('drawer-tools').style.display = 'none'; 

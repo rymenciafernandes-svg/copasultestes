@@ -572,6 +572,16 @@ body { background:#0e1412; background-image:radial-gradient(ellipse at 50% -20%,
 <div id="oc-destinatarios-lista"><div class="oc-recipient-row"><input id="oc-destinatario-principal" class="oc-recipient-input" type="email" required autocomplete="off" placeholder="destinatario@empresa.com.br" aria-label="Destinatário 1"></div></div>
 <button type="button" id="oc-adicionar-destinatario" class="oc-add-recipient">+ Adicionar outro e-mail</button>
 <small class="oc-recipient-help">Todos os destinatários receberão a mesma ordem de compra e o mesmo PDF.</small></div>
+<div class="oc-field full oc-saved-box" id="oc-saved-box">
+  <h4>Informações salvas</h4>
+  <p class="oc-saved-help">Guarde e-mails e modelos de mensagem neste navegador para reutilizar quando precisar.</p>
+  <div class="oc-saved-heading">E-mails favoritos</div>
+  <div class="oc-saved-entry"><input id="oc-fav-email" type="email" placeholder="email@empresa.com.br" aria-label="E-mail para salvar"><button type="button" id="oc-fav-add">Salvar e-mail</button></div>
+  <div id="oc-fav-list" class="oc-saved-list" aria-live="polite"></div>
+  <div class="oc-saved-heading">Mensagens padrão</div>
+  <div class="oc-saved-entry"><input id="oc-template-name" maxlength="70" placeholder="Nome do modelo (ex.: Padrão Copasul)" aria-label="Nome do modelo"><button type="button" id="oc-template-save">Salvar mensagem atual</button></div>
+  <div id="oc-template-list" class="oc-saved-list" aria-live="polite"></div>
+</div>
 <div class="oc-field full"><label for="oc-assunto">Assunto</label><input id="oc-assunto" required maxlength="200" placeholder="Ordem de compra — número"></div>
 <div class="oc-field full"><label for="oc-mensagem">Mensagem do e-mail</label><textarea id="oc-mensagem" maxlength="5000" placeholder="Prezados, encaminho a ordem de compra em anexo..."></textarea></div>
 <div class="oc-field full"><label for="oc-pdf">Anexar PDF (máximo 5 MB)</label><input id="oc-pdf" type="file" accept="application/pdf,.pdf" required></div>
@@ -2722,7 +2732,53 @@ safeAddEvent('btn-print-cartaz', 'click', function() {
     janela.document.write('    </div>');
     janela.document.write('  </div>');
     janela.document.write('</div>');
-    janela.document.write('</body></html>');
+    janela.document.write('<style>
+#p-ordens-compra .oc-saved-box{padding:16px;border:1px solid #3c4d65;border-radius:13px;background:rgba(23,34,51,.65)}
+#p-ordens-compra .oc-saved-box h4{font-size:16px;margin:0 0 6px;color:#eaf1ff}
+#p-ordens-compra .oc-saved-help{font-size:12px;color:#a5b4c8;margin-bottom:14px}
+#p-ordens-compra .oc-saved-heading{font-size:13px;font-weight:750;margin:14px 0 8px;color:#dbeafe}
+#p-ordens-compra .oc-saved-entry{display:flex;gap:8px;flex-wrap:wrap}
+#p-ordens-compra .oc-saved-entry input{flex:1;min-width:190px;padding:11px;border:1px solid #3c4d65;border-radius:9px;background:#141c29;color:#eef3ff;font:inherit}
+#p-ordens-compra .oc-saved-box button{padding:9px 12px;border:1px solid #5079b5;border-radius:9px;background:rgba(59,130,246,.14);color:#c5dcff;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+#p-ordens-compra .oc-saved-box button:hover{background:rgba(59,130,246,.25)}
+#p-ordens-compra .oc-saved-box button.oc-saved-delete{color:#fca5a5;border-color:#9b5151;background:transparent}
+#p-ordens-compra .oc-saved-list{display:flex;flex-direction:column;gap:7px;margin-top:9px}
+#p-ordens-compra .oc-saved-item{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;border:1px solid #334155;border-radius:9px;padding:9px}
+#p-ordens-compra .oc-saved-item span{font-size:12px;overflow-wrap:anywhere;flex:1;min-width:120px}
+#p-ordens-compra .oc-saved-buttons{display:flex;gap:5px;flex-wrap:wrap}
+#p-ordens-compra .oc-saved-empty{color:#94a3b8;font-size:12px}
+</style>
+<script>
+(function(){
+'use strict';
+var CONTACT_KEY='copasul_oc_favoritos_v1', TEMPLATE_KEY='copasul_oc_modelos_v1';
+var defaultSubject='ORDEM DE COMPRA Nº XXX – COPASUL';
+var defaultBody='Prezados(as),\n\nEncaminhamos, em anexo, a Ordem de Compra nº XXX, referente à aquisição de XXX, junto ao fornecedor XXX.\n\nSolicitamos, por gentileza, a conferência das informações constantes no documento e a confirmação do recebimento deste e-mail.\n\nDados da Ordem de Compra:\nNúmero da OC: XXX\nFornecedor: XXX\nData de emissão: XXX\nValor total: R$ XXX\n\nEm caso de dúvidas ou necessidade de esclarecimentos, permanecemos à disposição.\n\nAtenciosamente,\nXXX\nCopasul – Cooperativa Agrícola Sul-Mato-Grossense';
+function read(key){try{var a=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function write(key,a){try{localStorage.setItem(key,JSON.stringify(a));return true}catch(e){alert('Não foi possível salvar neste navegador. Verifique as configurações de armazenamento.');return false}}
+function el(id){return document.getElementById(id)}
+function button(text,click,cls){var b=document.createElement('button');b.type='button';b.textContent=text;if(cls)b.className=cls;b.addEventListener('click',click);return b}
+function init(){
+ if(!el('oc-fav-list')||!el('oc-template-list'))return;
+ function renderContacts(){var list=el('oc-fav-list');list.replaceChildren();var data=read(CONTACT_KEY);if(!data.length){var empty=document.createElement('div');empty.className='oc-saved-empty';empty.textContent='Nenhum e-mail salvo ainda.';list.appendChild(empty)}
+ data.forEach(function(email){var row=document.createElement('div');row.className='oc-saved-item';var label=document.createElement('span');label.textContent=email;var actions=document.createElement('div');actions.className='oc-saved-buttons';actions.appendChild(button('Destinatário',function(){
+ var inputs=Array.from(document.querySelectorAll('#oc-destinatarios-lista .oc-recipient-input'));
+ if(inputs.some(function(x){return x.value.trim().toLowerCase()===email.toLowerCase()})){alert('Este destinatário já foi adicionado.');return}
+ var blank=inputs.find(function(x){return !x.value.trim()});if(!blank){if(inputs.length>=20){alert('Limite de 20 destinatários.');return}el('oc-adicionar-destinatario').click();inputs=Array.from(document.querySelectorAll('#oc-destinatarios-lista .oc-recipient-input'));blank=inputs[inputs.length-1]}
+ blank.value=email;blank.dispatchEvent(new Event('input',{bubbles:true}));
+ }));actions.appendChild(button('Remetente',function(){el('oc-remetente').value=email;el('oc-remetente').dispatchEvent(new Event('input',{bubbles:true}))}));actions.appendChild(button('Excluir',function(){if(!confirm('Excluir este e-mail dos favoritos?'))return;write(CONTACT_KEY,read(CONTACT_KEY).filter(function(x){return x!==email}));renderContacts()},'oc-saved-delete'));row.append(label,actions);list.appendChild(row)})}
+ function renderTemplates(){var list=el('oc-template-list');list.replaceChildren();var data=read(TEMPLATE_KEY);if(!data.length){var empty=document.createElement('div');empty.className='oc-saved-empty';empty.textContent='Nenhuma mensagem salva ainda.';list.appendChild(empty)}
+ data.forEach(function(item){var row=document.createElement('div');row.className='oc-saved-item';var label=document.createElement('span');label.textContent=item.name;var actions=document.createElement('div');actions.className='oc-saved-buttons';actions.appendChild(button('Usar mensagem',function(){if((el('oc-assunto').value.trim()||el('oc-mensagem').value.trim())&&!confirm('Substituir o assunto e a mensagem atuais pelo modelo salvo?'))return;el('oc-assunto').value=item.subject;el('oc-mensagem').value=item.body;el('oc-assunto').dispatchEvent(new Event('input',{bubbles:true}));el('oc-mensagem').dispatchEvent(new Event('input',{bubbles:true}))}));actions.appendChild(button('Excluir',function(){if(!confirm('Excluir este modelo de mensagem?'))return;write(TEMPLATE_KEY,read(TEMPLATE_KEY).filter(function(x){return x.name!==item.name}));renderTemplates()},'oc-saved-delete'));row.append(label,actions);list.appendChild(row)})}
+ el('oc-fav-add').addEventListener('click',function(){var input=el('oc-fav-email');var email=input.value.trim().toLowerCase();if(!input.checkValidity()||!email){input.reportValidity();return}var data=read(CONTACT_KEY);if(data.includes(email)){alert('Este e-mail já está salvo.');return}if(data.length>=100){alert('Limite de 100 e-mails salvos.');return}data.push(email);if(write(CONTACT_KEY,data)){input.value='';renderContacts()}});
+ el('oc-template-save').addEventListener('click',function(){var name=el('oc-template-name').value.trim();if(!name){alert('Digite um nome para o modelo.');return}var subject=el('oc-assunto').value.trim(),body=el('oc-mensagem').value.trim();if(!subject&&!body){alert('Preencha o assunto ou a mensagem antes de salvar.');return}var data=read(TEMPLATE_KEY);var index=data.findIndex(function(x){return x.name.toLowerCase()===name.toLowerCase()});if(index>=0&&!confirm('Já existe um modelo com esse nome. Deseja substituí-lo?'))return;if(index<0&&data.length>=30){alert('Limite de 30 modelos salvos.');return}var item={name:name,subject:subject,body:body};if(index>=0)data[index]=item;else data.push(item);if(write(TEMPLATE_KEY,data)){el('oc-template-name').value='';renderTemplates()}});
+ // O modelo padrão é uma opção salva inicialmente; nunca preenche campos sem a ação do usuário.
+ if(!localStorage.getItem(TEMPLATE_KEY))write(TEMPLATE_KEY,[{name:'Padrão Copasul (XXX)',subject:defaultSubject,body:defaultBody}]);
+ renderContacts();renderTemplates();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body></html>');
     janela.document.close();
     janela.focus();
     setTimeout(function() { janela.print(); janela.close(); }, 800);
